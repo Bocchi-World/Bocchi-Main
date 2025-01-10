@@ -39,6 +39,13 @@ local function InitLibrary()
         corner.Parent = instance
     end
     
+    local function ApplyUIStroke(instance, thickness, color)
+        local stroke = Instance.new("UIStroke")
+        stroke.Thickness = thickness
+        stroke.Color = color
+        stroke.Parent = instance
+    end
+    
     local function MakeDraggable(frame, dragHandle)
         local dragging = false
         local dragStart = nil
@@ -146,6 +153,7 @@ local function InitLibrary()
             ClipsDescendants = true
         })
         ApplyUICorner(Window.Main, 10)
+        ApplyUIStroke(Window.Main, 1, Color3.fromRGB(50, 50, 50))
         
         Window.TitleBar = Create("Frame", {
             Name = "TitleBar",
@@ -326,40 +334,123 @@ local function InitLibrary()
                     TextXAlignment = Enum.TextXAlignment.Left
                 })
                 
+                local dropdownOptions = Create("Frame", {
+                    Parent = dropdown,
+                    BackgroundColor3 = Library.Themes[Library.Settings.Theme].Secondary,
+                    Position = UDim2.new(0, 0, 1, 5),
+                    Size = UDim2.new(1, 0, 0, 0),
+                    ClipsDescendants = true,
+                    Visible = false
+                })
+                ApplyUICorner(dropdownOptions, 5)
+                ApplyUIStroke(dropdownOptions, 1, Color3.fromRGB(50, 50, 50))
+
+                local optionsList = Create("UIListLayout", {
+                    Parent = dropdownOptions,
+                    SortOrder = Enum.SortOrder.LayoutOrder,
+                    Padding = UDim.new(0, 5)
+                })
+
                 local selected = default or options[1]
                 Library.Flags[flag] = selected
-                
-                button.MouseButton1Click:Connect(function()
-                    for _, option in pairs(options) do
-                        if option == selected then
-                            selected = nil
-                            break
-                        end
+
+                local function updateDropdown()
+                    button.Text = selected
+                    Library.Flags[flag] = selected
+                    if callback then callback(selected) end
+                end
+
+                local function toggleDropdown()
+                    dropdownOptions.Visible = not dropdownOptions.Visible
+                    if dropdownOptions.Visible then
+                        dropdownOptions.Size = UDim2.new(1, 0, 0, #options * 25 + 10)
+                    else
+                        dropdownOptions.Size = UDim2.new(1, 0, 0, 0)
                     end
-                    if selected then
-                        button.Text = selected
-                        Library.Flags[flag] = selected
-                        if callback then callback(selected) end
+                end
+
+                for _, option in pairs(options) do
+                    local optionButton = Create("TextButton", {
+                        Parent = dropdownOptions,
+                        BackgroundColor3 = Library.Themes[Library.Settings.Theme].Main,
+                        Size = UDim2.new(1, -10, 0, 25),
+                        Position = UDim2.new(0, 5, 0, 0),
+                        Text = option,
+                        TextColor3 = Library.Themes[Library.Settings.Theme].TextColor,
+                        TextSize = 14,
+                        AutoButtonColor = false
+                    })
+                    ApplyUICorner(optionButton, 5)
+
+                    optionButton.MouseButton1Click:Connect(function()
+                        selected = option
+                        updateDropdown()
+                        toggleDropdown()
+                    end)
+                end
+
+                button.MouseButton1Click:Connect(toggleDropdown)
+                updateDropdown()
+            end
+            
+            function Tab:Keybind(name, defaultKey, flag, callback)
+                local keybindFrame = Create("Frame", {
+                    Name = name,
+                    Parent = self.Content,
+                    BackgroundColor3 = Library.Themes[Library.Settings.Theme].Secondary,
+                    Size = UDim2.new(1, -10, 0, 30)
+                })
+                ApplyUICorner(keybindFrame, 5)
+    
+                local keybindButton = Create("TextButton", {
+                    Parent = keybindFrame,
+                    BackgroundColor3 = Library.Themes[Library.Settings.Theme].Main,
+                    Position = UDim2.new(1, -60, 0.5, -10),
+                    Size = UDim2.new(0, 50, 0, 20),
+                    Font = Enum.Font.SourceSans,
+                    Text = tostring(defaultKey),
+                    TextColor3 = Library.Themes[Library.Settings.Theme].TextColor,
+                    TextSize = 14
+                })
+                ApplyUICorner(keybindButton, 5)
+    
+                local title = Create("TextLabel", {
+                    Parent = keybindFrame,
+                    BackgroundTransparency = 1,
+                    Position = UDim2.new(0, 10, 0, 0),
+                    Size = UDim2.new(1, -70, 1, 0),
+                    Font = Enum.Font.SourceSans,
+                    Text = name,
+                    TextColor3 = Library.Themes[Library.Settings.Theme].TextColor,
+                    TextSize = 14,
+                    TextXAlignment = Enum.TextXAlignment.Left
+                })
+    
+                local listening = false
+    
+                keybindButton.MouseButton1Click:Connect(function()
+                    listening = true
+                    keybindButton.Text = "..."
+                end)
+    
+                UserInputService.InputBegan:Connect(function(input)
+                    if listening and input.UserInputType == Enum.UserInputType.Keyboard then
+                        listening = false
+                        local key = input.KeyCode.Name
+                        keybindButton.Text = key
+                        Library.Flags[flag] = key
+                        if callback then callback(key) end
                     end
                 end)
             end
-            
-            if #self.TabContainer:GetChildren() == 2 then
-                Tab.Content.Visible = true
-            end
-            
-            Tab.Button.MouseButton1Click:Connect(function()
-                for _, tab in pairs(self.ContentContainer:GetChildren()) do
-                    tab.Visible = false
-                end
-                Tab.Content.Visible = true
-            end)
             
             return Tab
         end
         
         return Window
     end
+    
+    return Library
 end
 
 InitLibrary()
