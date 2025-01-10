@@ -33,10 +33,65 @@ local function InitLibrary()
         return instance
     end
     
-    local function Tween(instance, properties, duration)
-        local tween = TweenService:Create(instance, TweenInfo.new(duration, Enum.EasingStyle.Quart), properties)
+    local function ApplyUICorner(instance, cornerRadius)
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, cornerRadius)
+        corner.Parent = instance
+    end
+    
+    local function MakeDraggable(frame, dragHandle)
+        local dragging = false
+        local dragStart = nil
+        local startPos = nil
+
+        dragHandle.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                dragging = true
+                dragStart = input.Position
+                startPos = frame.Position
+            end
+        end)
+
+        UserInputService.InputChanged:Connect(function(input)
+            if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+                local delta = input.Position - dragStart
+                frame.Position = UDim2.new(
+                    startPos.X.Scale,
+                    startPos.X.Offset + delta.X,
+                    startPos.Y.Scale,
+                    startPos.Y.Offset + delta.Y
+                )
+            end
+        end)
+
+        UserInputService.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                dragging = false
+            end
+        end)
+    end
+    
+    local function AnimateUI(instance, properties, duration, easingStyle, easingDirection)
+        local tweenInfo = TweenInfo.new(duration, easingStyle, easingDirection)
+        local tween = TweenService:Create(instance, tweenInfo, properties)
         tween:Play()
         return tween
+    end
+    
+    local function CreateScrollableFrame(parent, size, position, canvasSize)
+        local scrollFrame = Instance.new("ScrollingFrame")
+        scrollFrame.Size = size
+        scrollFrame.Position = position
+        scrollFrame.CanvasSize = canvasSize
+        scrollFrame.BackgroundTransparency = 1
+        scrollFrame.ScrollBarThickness = 5
+        scrollFrame.Parent = parent
+
+        local uiListLayout = Instance.new("UIListLayout")
+        uiListLayout.Parent = scrollFrame
+        uiListLayout.Padding = UDim.new(0, 5)
+
+        return scrollFrame
     end
     
     local function SaveConfig()
@@ -90,6 +145,7 @@ local function InitLibrary()
             Size = UDim2.new(0, 600, 0, 400),
             ClipsDescendants = true
         })
+        ApplyUICorner(Window.Main, 10)
         
         Window.TitleBar = Create("Frame", {
             Name = "TitleBar",
@@ -98,6 +154,7 @@ local function InitLibrary()
             BorderSizePixel = 0,
             Size = UDim2.new(1, 0, 0, 30)
         })
+        ApplyUICorner(Window.TitleBar, 10)
         
         Window.Title = Create("TextLabel", {
             Name = "Title",
@@ -120,6 +177,7 @@ local function InitLibrary()
             Position = UDim2.new(0, 0, 0, 30),
             Size = UDim2.new(0, 150, 1, -30)
         })
+        ApplyUICorner(Window.TabContainer, 5)
         
         Window.TabList = Create("UIListLayout", {
             Parent = Window.TabContainer,
@@ -135,43 +193,9 @@ local function InitLibrary()
             Size = UDim2.new(1, -170, 1, -50)
         })
         
-        local dragging = false
-        local dragStart = nil
-        local startPos = nil
+        MakeDraggable(Window.Main, Window.TitleBar)
         
-        Window.TitleBar.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                dragging = true
-                dragStart = input.Position
-                startPos = Window.Main.Position
-            end
-        end)
-        
-        UserInputService.InputChanged:Connect(function(input)
-            if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-                local delta = input.Position - dragStart
-                Window.Main.Position = UDim2.new(
-                    startPos.X.Scale,
-                    startPos.X.Offset + delta.X,
-                    startPos.Y.Scale,
-                    startPos.Y.Offset + delta.Y
-                )
-            end
-        end)
-        
-        UserInputService.InputEnded:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                dragging = false
-            end
-        end)
-        
-        UserInputService.InputBegan:Connect(function(input)
-            if input.KeyCode == self.Settings.ToggleKey then
-                Window.MainGui.Enabled = not Window.MainGui.Enabled
-            end
-        end)
-        
-        if RunService:IsMobile() then
+        if UserInputService.TouchEnabled then
             local ToggleButton = Create("ImageButton", {
                 Name = "ToggleButton",
                 Parent = Window.MainGui,
@@ -182,6 +206,7 @@ local function InitLibrary()
                 ScaleType = Enum.ScaleType.Fit,
                 AnchorPoint = Vector2.new(0, 0)
             })
+            ApplyUICorner(ToggleButton, 10)
             
             ToggleButton.MouseButton1Click:Connect(function()
                 Window.MainGui.Enabled = not Window.MainGui.Enabled
@@ -202,22 +227,9 @@ local function InitLibrary()
                 TextColor3 = Library.Themes[Library.Settings.Theme].TextColor,
                 TextSize = 14
             })
+            ApplyUICorner(Tab.Button, 5)
             
-            Tab.Content = Create("ScrollingFrame", {
-                Name = name.."Content",
-                Parent = self.ContentContainer,
-                BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 1, 0),
-                CanvasSize = UDim2.new(0, 0, 0, 0),
-                ScrollBarThickness = 2,
-                Visible = false
-            })
-            
-            local UIListLayout = Create("UIListLayout", {
-                Parent = Tab.Content,
-                SortOrder = Enum.SortOrder.LayoutOrder,
-                Padding = UDim.new(0, 5)
-            })
+            Tab.Content = CreateScrollableFrame(self.ContentContainer, UDim2.new(1, 0, 1, 0), UDim2.new(0, 0, 0, 0), UDim2.new(0, 0, 2, 0))
             
             function Tab:Toggle(name, default, flag, callback)
                 local toggle = Create("Frame", {
@@ -226,6 +238,7 @@ local function InitLibrary()
                     BackgroundColor3 = Library.Themes[Library.Settings.Theme].Secondary,
                     Size = UDim2.new(1, -10, 0, 30)
                 })
+                ApplyUICorner(toggle, 5)
                 
                 local button = Create("TextButton", {
                     Parent = toggle,
@@ -234,6 +247,7 @@ local function InitLibrary()
                     Size = UDim2.new(0, 40, 0, 20),
                     Text = ""
                 })
+                ApplyUICorner(button, 10)
                 
                 local title = Create("TextLabel", {
                     Parent = toggle,
@@ -275,6 +289,7 @@ local function InitLibrary()
                     TextColor3 = Library.Themes[Library.Settings.Theme].TextColor,
                     TextSize = 14
                 })
+                ApplyUICorner(button, 5)
                 
                 button.MouseButton1Click:Connect(callback)
             end
@@ -286,6 +301,7 @@ local function InitLibrary()
                     BackgroundColor3 = Library.Themes[Library.Settings.Theme].Secondary,
                     Size = UDim2.new(1, -10, 0, 30)
                 })
+                ApplyUICorner(dropdown, 5)
                 
                 local button = Create("TextButton", {
                     Parent = dropdown,
@@ -296,6 +312,7 @@ local function InitLibrary()
                     TextColor3 = Library.Themes[Library.Settings.Theme].TextColor,
                     TextSize = 14
                 })
+                ApplyUICorner(button, 10)
                 
                 local title = Create("TextLabel", {
                     Parent = dropdown,
