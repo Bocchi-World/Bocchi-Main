@@ -42,11 +42,8 @@ local function InitLibrary()
     local function SaveConfig()
         local config = {
             Flags = Library.Flags,
-            Instances = {}
+            Instances = Library.SavedInstances
         }
-        for instance, data in pairs(Library.SavedInstances) do
-            config.Instances[instance] = data
-        end
         writefile("UILibrary.config", HttpService:JSONEncode(config))
     end
     
@@ -168,7 +165,6 @@ local function InitLibrary()
             end
         end)
         
-        -- Mobile Toggle Button
         if RunService:IsMobile() then
             local ToggleButton = Create("ImageButton", {
                 Name = "ToggleButton",
@@ -344,3 +340,5 @@ local function InitLibrary()
 end
 
 InitLibrary()
+
+return Library
