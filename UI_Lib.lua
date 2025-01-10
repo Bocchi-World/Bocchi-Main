@@ -44,12 +44,18 @@ local function InitLibrary()
             Flags = Library.Flags,
             Instances = Library.SavedInstances
         }
-        writefile("UILibrary.config", HttpService:JSONEncode(config))
+        if not isfolder("BocchiWorld/AA/config_all") then
+            makefolder("BocchiWorld")
+            makefolder("BocchiWorld/AA")
+            makefolder("BocchiWorld/AA/config_all")
+        end
+        writefile("BocchiWorld/AA/config_all/UILibrary.config", HttpService:JSONEncode(config))
     end
     
     local function LoadConfig()
-        if isfile("UILibrary.config") then
-            local config = HttpService:JSONDecode(readfile("UILibrary.config"))
+        local configPath = "BocchiWorld/AA/config_all/UILibrary.config"
+        if isfile(configPath) then
+            local config = HttpService:JSONDecode(readfile(configPath))
             for flag, value in pairs(config.Flags) do
                 if Library.Flags[flag] ~= nil then
                     Library.Flags[flag] = value
@@ -172,7 +178,7 @@ local function InitLibrary()
                 BackgroundTransparency = 1,
                 Position = UDim2.new(0, 10, 0, 10),
                 Size = UDim2.new(0, 50, 0, 50),
-                Image = "rbxassetid://1234567890", -- Replace with your image asset ID
+                Image = "rbxassetid://1234567890",
                 ScaleType = Enum.ScaleType.Fit,
                 AnchorPoint = Vector2.new(0, 0)
             })
