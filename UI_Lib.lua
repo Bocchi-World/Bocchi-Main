@@ -2,10 +2,10 @@ local Library = {
     Flags = {},
     Themes = {
         Default = {
-            Main = Color3.fromRGB(30, 30, 35),
-            Secondary = Color3.fromRGB(25, 25, 30),
-            Accent = Color3.fromRGB(65, 150, 255),
-            TextColor = Color3.fromRGB(255, 255, 255)
+            Main = Color3.fromRGB(32, 32, 32),       -- Màu nền chính (tối)
+            Secondary = Color3.fromRGB(25, 25, 25),  -- Màu nền phụ (tối hơn)
+            Accent = Color3.fromRGB(0, 120, 215),    -- Màu accent (xanh dương)
+            TextColor = Color3.fromRGB(255, 255, 255) -- Màu chữ (trắng)
         }
     },
     Settings = {
