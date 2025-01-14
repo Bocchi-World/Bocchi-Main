@@ -1,11 +1,11 @@
-local links = {
+local v3 = {
     "https://raw.githubusercontent.com/Ngducok/doing-some-shit/refs/heads/main/UI.lua",
     "https://raw.githubusercontent.com/Bocchi-World/Bocchi-Main/refs/heads/main/pickcard.lua",
     "https://raw.githubusercontent.com/Ngducok/doing-some-shit/refs/heads/main/hey.lua"
     "https://raw.githubusercontent.com/Bocchi-World/Bocchi-Main/refs/heads/main/FPSBooster.lua"
 }
 
-for v1,v2 in ipairs(v2) do
+for v1,v2 in ipairs(v3) do
     pcall(function()
         loadstring(game:HttpGet(v2))()
     end)
