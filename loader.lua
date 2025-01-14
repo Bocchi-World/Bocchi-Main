@@ -5,8 +5,8 @@ local links = {
     "https://raw.githubusercontent.com/Bocchi-World/Bocchi-Main/refs/heads/main/FPSBooster.lua"
 }
 
-for _, link in ipairs(links) do
+for v1,v2 in ipairs(v2) do
     pcall(function()
-        loadstring(game:HttpGet(link))()
+        loadstring(game:HttpGet(v2))()
     end)
 end
