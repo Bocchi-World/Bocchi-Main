@@ -7,6 +7,15 @@ local UnitsRequirement = {
         StarFruitGreen = 1,
         StarFruitPink = 1,
         StarFruitEpic = 1
+    },
+    grimmjow_res = {
+        TakeDown = 1,
+        StarFruit = 1,
+        StarFruitRed = 1,
+        StarFruitBlue = 1,
+        StarFruitGreen = 1,
+        StarFruitPink = 1,
+        StarFruitEpic = 1
     }
 }
 
