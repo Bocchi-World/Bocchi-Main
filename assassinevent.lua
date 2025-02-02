@@ -130,7 +130,7 @@ local function AutoJoinAssassin()
                 task.wait(5)
 
                 local args = {
-                    [1] = "__EVENT_CONTRACT_Sakamoo:" .. tierID
+                    [1] = "__EVENT_CONTRACT_Sakamoto:" .. tierID
                 }
                 remoteEvent:InvokeServer(unpack(args))
                 break
