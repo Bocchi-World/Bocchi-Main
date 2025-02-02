@@ -1,3 +1,5 @@
+
+
 function UI()
     local player = game.Players.LocalPlayer
     local playerGui = player:WaitForChild("PlayerGui")
@@ -80,25 +82,24 @@ function UI()
 end
 
 local function AutoJoinAssassin()
-
-    if game.PlaceId ~= 8304191830 then
-        return
-    end
     local scrollFrame = game.Players.LocalPlayer.PlayerGui.ContractsUI.Main.Main.Frame.Outer.main.Scroll
     local remoteEvent = game:GetService("ReplicatedStorage").endpoints.client_to_server.request_matchmaking
+    local loadoutEvent = game:GetService("ReplicatedStorage").endpoints.client_to_server.load_team_loadout
 
     local missions = {}
+
     for _, missionFrame in ipairs(scrollFrame:GetChildren()) do
         if missionFrame:IsA("Frame") then
             local difficultyLabel = missionFrame:FindFirstChild("Main") and missionFrame.Main:FindFirstChild("Difficulty")
             local clearedCheck = missionFrame:FindFirstChild("Main") and missionFrame.Main:FindFirstChild("Cleared")
-            
+
             if difficultyLabel and clearedCheck then
-                local tierText = difficultyLabel.Text 
-                local tierNumber = tonumber(tierText:match("%d+")) or 0 
-                local isCleared = clearedCheck.Visible 
+                local tierText = difficultyLabel.Text
+                local tierNumber = tonumber(tierText:match("%d+")) or 0
+                local isCleared = clearedCheck.Visible
+                
                 if tierNumber > 0 then
-                    table.insert(missions, { tier = tierNumber, cleared = isCleared })
+                    table.insert(missions, { tier = tierNumber, cleared = isCleared, frame = missionFrame })
                 end
             end
         end
@@ -108,25 +109,54 @@ local function AutoJoinAssassin()
         return a.tier > b.tier
     end)
 
-    print("📋 Danh sách nhiệm vụ:")
-    for _, mission in ipairs(missions) do
-        print("Tier: " .. mission.tier .. " | Clear: " .. (mission.cleared and "Yes" or "No"))
-    end
-
     local tierID = 6
     for _, mission in ipairs(missions) do
-        local tierName = "Assassin " .. tierID
-        if getgenv().Config["Auto Join Assassin"][tierName] then
-            if not mission.cleared then
+        if not mission.cleared then
+            local damageTypeIconsFrame = mission.frame.Main:FindFirstChild("DamageTypeIcons")
+            if damageTypeIconsFrame then
+                local resistanceFrameAmp = damageTypeIconsFrame:FindFirstChild("ResistanceFrameAmp")
+                if resistanceFrameAmp then
+                    for _, imageLabel in ipairs(resistanceFrameAmp:GetChildren()) do
+                        if imageLabel:IsA("ImageLabel") then
+                            if imageLabel.Image == "rbxassetid://11499571416" then
+                                loadoutEvent:InvokeServer("2")
+                            elseif imageLabel.Image == "rbxassetid://11499567212" then
+                                loadoutEvent:InvokeServer("1")
+                            end
+                        end
+                    end
+                end
+
+                task.wait(5)
+
                 local args = {
-                    [1] = "__EVENT_CONTRACT_Sakamoto:" .. tierID
+                    [1] = "__EVENT_CONTRACT_Sakamoo:" .. tierID
                 }
-                print("🛠️ Bắt đầu matchmaking cho tier: " .. mission.tier .. " với ID: " .. args[1])
                 remoteEvent:InvokeServer(unpack(args))
+                break
             end
         end
         tierID = tierID - 1
     end
 end
-UI()
-AutoJoinAssassin()
+
+function isAuthorized(username)
+    for _, v in ipairs(getgenv().Config["Accept Load Script"]) do
+        if v == username then
+            return true
+        end
+    end
+    return false
+end
+
+function getUsername()
+    return game.Players.LocalPlayer.Name
+end
+
+if isAuthorized(getUsername()) then
+    UI()
+    AutoJoinAssassin()
+else
+    print("You not has permission for load Assassin Event Scripts [Made by Bocchi World]!")
+end
+
