@@ -4774,7 +4774,7 @@ function MacLib:Window(Settings)
 			label.Size = UDim2.new(0.882, 0, 0.823, 0)
 			label.TextColor3 = Color3.fromRGB(214, 159, 64)
 			label.BackgroundTransparency = 1
-			label.Text = 'Buang Hub'
+			label.Text = 'Niga testing 1'
 			label.TextScaled = true
 			label.ZIndex = 9999
 
