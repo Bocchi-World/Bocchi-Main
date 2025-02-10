@@ -3503,14 +3503,13 @@ end
 
 function MacLib:Window(Settings)
 	Settings = Defaults({
-		Title = "Buang Hub",
+		Title = "NigaNiga",
 		Subtitle = "",
 		Size = UDim2.fromOffset(868, 650),
 		Scale = 1,
-		AcrylicBlur = false,
+		AcrylicBlur = true,
 		Keybind = Enum.KeyCode.RightControl,
 		ShowUserInfo = false
-		ImageID = "rbxassetid://6996359391",
 	}, Settings)
 
 	local WindowFunctions = {}
@@ -3520,12 +3519,6 @@ function MacLib:Window(Settings)
 	else
 		acrylicBlur = true
 	end
-	local ImageLabel = Instance.new("ImageLabel")
-	ImageLabel.Parent = script.Parent
-	ImageLabel.Size = UDim2.new(1, 0, 1, 0) -- Full kích thước
-	ImageLabel.Position = UDim2.new(0, 0, 0, 0)
-	ImageLabel.Image = Settings.ImageID
-	ImageLabel.BackgroundTransparency = 1 -- Ẩn nền để chỉ hiển thị ảnh
 
 
 	local macLib = Instance.new("ScreenGui")
