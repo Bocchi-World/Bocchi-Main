@@ -4,45 +4,31 @@ local player = game:GetService("Players").LocalPlayer
 local playergui = player:WaitForChild("PlayerGui")
 local roguelikeselect = playergui:WaitForChild("RoguelikeSelect")
 local waveValue = game:GetService("Workspace"):WaitForChild("_wave_num")
+
 roguelikeselect.Enabled = true
-task.wait(0.5) 
+task.wait(0.5)
 roguelikeselect.Enabled = false
-local wavenumber
+local wavenumber = waveValue.Value
 waveValue:GetPropertyChangedSignal("Value"):Connect(function()
     wavenumber = waveValue.Value
 end)
-local timeout = 10  
-local startTime = tick()
-repeat 
-    task.wait()
-    if tick() - startTime > timeout then
-        warn("Timeout waiting for wavenumber update!")
-        break
-    end
-until wavenumber and wavenumber >= 1
+repeat task.wait() until wavenumber and wavenumber >= 1
 
-local positiontable = {}
-local newoptions = {}
-local args = {}
-local isProcessing = false
-playergui:FindFirstChild("RoguelikeSelect"):GetPropertyChangedSignal("Enabled"):Connect(function()
-    if isProcessing then return end
-    isProcessing = true
+local function selectBestCard()
+    local positiontable = {}
+    local newoptions = {}
+    local args = {}
+    repeat task.wait() until roguelikeselect.Enabled
+
     wait()
-
     local optionframe = playergui.RoguelikeSelect.Main.Main.Items:FindFirstChild("OptionFrame")
-    if not optionframe then 
-        isProcessing = false
-        return 
-    end
+    if not optionframe then return end
 
     optionframe.Active = true
     optionframe.Active = false
     wait(1)
 
     local options = playergui.RoguelikeSelect.Main.Main.Items:GetChildren()
-    positiontable = {}
-
     for _, v in pairs(options) do
         if v.Name == "OptionFrame" and v:IsA("Frame") and v:FindFirstChild("bg") then
             table.insert(positiontable, v.AbsolutePosition.X)
@@ -50,7 +36,6 @@ playergui:FindFirstChild("RoguelikeSelect"):GetPropertyChangedSignal("Enabled"):
     end
 
     table.sort(positiontable)
-    newoptions = {}
 
     for _, v in pairs(options) do
         if v.Name == "OptionFrame" and v:IsA("Frame") and v:FindFirstChild("bg") then
@@ -63,20 +48,19 @@ playergui:FindFirstChild("RoguelikeSelect"):GetPropertyChangedSignal("Enabled"):
             end
         end
     end
-    if #newoptions < 3 then
-        warn("Không đủ lựa chọn trong GUI!")
-        isProcessing = false
-        return
-    end
-    local priorityList = (wavenumber and wavenumber <= getgenv().FocusWave) and getgenv().PriorityCards or getgenv().Cards
+    if #newoptions < 3 then return end
+    local priorityList = wavenumber <= getgenv().FocusWave and getgenv().PriorityCards or getgenv().Cards
 
     for _, card in ipairs(priorityList) do
         if newoptions[1].Text == card then
             args = {[1] = "1"}
+            break
         elseif newoptions[2].Text == card then
             args = {[1] = "3"}
+            break
         elseif newoptions[3].Text == card then
             args = {[1] = "2"}
+            break
         end
     end
 
@@ -84,11 +68,9 @@ playergui:FindFirstChild("RoguelikeSelect"):GetPropertyChangedSignal("Enabled"):
     if args[1] then
         game:GetService("ReplicatedStorage").endpoints.client_to_server.select_roguelike_option:InvokeServer(unpack(args))
     end
-
-    isProcessing = false
-end)
-if not roguelikeselect.Enabled then
-    roguelikeselect.Enabled = true
-    task.wait(0.5)
-    roguelikeselect.Enabled = false
 end
+roguelikeselect:GetPropertyChangedSignal("Enabled"):Connect(function()
+    if roguelikeselect.Enabled then
+        selectBestCard()
+    end
+end)
