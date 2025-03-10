@@ -64,22 +64,30 @@ function AutoJoinDungeon()
             frameIndex = frameIndex + 1
         end
     end
+    if #frameData == 0 then
+        warn("Not found best room.")
+        frameData[1] = {
+            Index = 1,
+            Score = 0,
+            Items = {}
+        }
+    end
     table.sort(frameData, function(a, b)
         return a.Score > b.Score
     end)
-    
     for _, data in ipairs(frameData) do
         print("Room " .. data.Index .. ": Total Score = " .. data.Score .. ", Item = [" .. table.concat(data.Items, ", ") .. "]")
     end
     local bestFrame = frameData[1]
     if bestFrame then
         local args = {
-         [1] = tostring(bestFrame.Index)
+            [1] = tostring(bestFrame.Index)
         }
     
         game:GetService("ReplicatedStorage").endpoints.client_to_server.dungeon_enter_room:InvokeServer(unpack(args))
     end
 end
+
 local targetPlaceId = 8304191830
 if game.PlaceId == targetPlaceId then
     AutoJoinDungeon()
