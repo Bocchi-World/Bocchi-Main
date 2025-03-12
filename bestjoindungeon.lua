@@ -111,64 +111,6 @@ local function ClickEndGame()
 end
 
 local priorityList = getgenv().Config["Priority Item Join Dungeon"]
-local function calculatePartScore(part)
-    local score = 0
-    local itemsFound = {}
-    if part then
-        for _, imageLabel in ipairs(part:GetChildren()) do
-            if imageLabel:IsA("ImageLabel") and imageLabel.Visible == true then
-                local name = imageLabel.Name
-                local priority = table.find(priorityList, name)
-                
-                if priority then
-                    local points = #priorityList - priority + 1
-                    score = score + points
-                    table.insert(itemsFound, name)
-                end
-            end
-        end
-    end
-
-    return score, itemsFound
-end
-local function calculateFrameScore(frame)
-    local totalScore = 0
-    local totalItemsFound = {}
-
-    
-    pcall(function()
-        local frameTop = frame:FindFirstChild("FrameTop")
-        if frameTop then
-            local frameTopMain = frameTop:FindFirstChild("Frame")
-            if frameTopMain then
-                local levelAttributesTop = frameTopMain:FindFirstChild("Main")
-                if levelAttributesTop then
-                    local score, itemsFound = calculatePartScore(levelAttributesTop:FindFirstChild("LevelAttributes"))
-                    totalScore = totalScore + (score or 0)
-                    for _, item in ipairs(itemsFound or {}) do
-                        table.insert(totalItemsFound, item)
-                    end
-                end
-            end
-        end
-    end)
-
-    pcall(function()
-        local main = frame:FindFirstChild("Main")
-        if main then
-            local levelAttributes = main:FindFirstChild("LevelAttributes")
-            if levelAttributes then
-                local score, itemsFound = calculatePartScore(levelAttributes)
-                totalScore = totalScore + (score or 0)
-                for _, item in ipairs(itemsFound or {}) do
-                    table.insert(totalItemsFound, item)
-                end
-            end
-        end
-    end)
-
-    return totalScore, totalItemsFound
-end
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -264,45 +206,108 @@ local function checkShop()
     print("Đã mua xong tất cả các item hợp lệ. Tiếp tục dungeon...")
     game:GetService("ReplicatedStorage").endpoints.client_to_server.dungeon_continue_shop:InvokeServer()
 end
+local function calculatePartScore(part)
+    local score = 0
+    local itemsFound = {}
+    if part then
+        for _, imageLabel in ipairs(part:GetChildren()) do
+            if imageLabel:IsA("ImageLabel") and imageLabel.Visible == true then
+                local name = imageLabel.Name
+                local priority = table.find(priorityList, name)
+                
+                if priority then
+                    local points = #priorityList - priority + 1
+                    score = score + points
+                    table.insert(itemsFound, name)
+                end
+            end
+        end
+    end
+
+    return score, itemsFound
+end
+local function calculateFrameScore(frame)
+    local totalScore = 0
+    local totalItemsFound = {}
+
+    
+    pcall(function()
+        local frameTop = frame:FindFirstChild("FrameTop")
+        if frameTop then
+            local frameTopMain = frameTop:FindFirstChild("Frame")
+            if frameTopMain then
+                local levelAttributesTop = frameTopMain:FindFirstChild("Main")
+                if levelAttributesTop then
+                    local score, itemsFound = calculatePartScore(levelAttributesTop:FindFirstChild("LevelAttributes"))
+                    totalScore = totalScore + (score or 0)
+                    for _, item in ipairs(itemsFound or {}) do
+                        table.insert(totalItemsFound, item)
+                    end
+                end
+            end
+        end
+    end)
+
+    pcall(function()
+        local main = frame:FindFirstChild("Main")
+        if main then
+            local levelAttributes = main:FindFirstChild("LevelAttributes")
+            if levelAttributes then
+                local score, itemsFound = calculatePartScore(levelAttributes)
+                totalScore = totalScore + (score or 0)
+                for _, item in ipairs(itemsFound or {}) do
+                    table.insert(totalItemsFound, item)
+                end
+            end
+        end
+    end)
+
+    return totalScore, totalItemsFound
+end
 function AutoJoinDungeon()
     local frameData = {}
     local frames = targetPath:GetChildren()
     local frameIndex = 1
+    local bestFrame = nil
+
     for _, frame in ipairs(frames) do
         if frame:IsA("Frame") and frame.Name == "Frame" then
             local score, itemsFound = calculateFrameScore(frame)
-            table.insert(frameData, {
+            local frameInfo = {
                 Index = frameIndex,
                 Score = score,
                 Items = itemsFound
-            })
+            }
+            table.insert(frameData, frameInfo)
+
+            if not bestFrame or score > bestFrame.Score then
+                bestFrame = frameInfo
+            end
             
             frameIndex = frameIndex + 1
         end
     end
-    if #frameData == 0 then
-        warn("Not found best room.")
-        frameData[1] = {
+
+    if not bestFrame then
+        warn("Không tìm thấy room tốt nhất.")
+        bestFrame = {
             Index = 1,
             Score = 0,
             Items = {}
         }
     end
-    table.sort(frameData, function(a, b)
-        return a.Score > b.Score
-    end)
+
     for _, data in ipairs(frameData) do
-        print("Room " .. data.Index .. ": Total Score = " .. data.Score .. ", Item = [" .. table.concat(data.Items, ", ") .. "]")
+        print("Room " .. data.Index .. ": Tổng điểm = " .. data.Score .. ", Vật phẩm = [" .. table.concat(data.Items, ", ") .. "]")
     end
-    local bestFrame = frameData[1]
+
     if bestFrame then
-        local args = {
-            [1] = tostring(bestFrame.Index)
-        }
-    
+        print("Tham gia room tốt nhất: Room " .. bestFrame.Index .. " với tổng điểm = " .. bestFrame.Score)
+        local args = { tostring(bestFrame.Index) }
         game:GetService("ReplicatedStorage").endpoints.client_to_server.dungeon_enter_room:InvokeServer(unpack(args))
     end
 end
+
 
 local function IsWhitelisted(name)
     for _, item in ipairs(Whitelist) do
