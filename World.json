@@ -1,0 +1,292 @@
+{
+    "Story": {
+        "Ghoul City": {
+            "Chapter": [
+                "TokyoGhoul_Chapter8",
+                "TokyoGhoul_Chapter1",
+                "TokyoGhoul_Chapter5",
+                "TokyoGhoul_Chapter3",
+                "TokyoGhoul_Chapter2",
+                "TokyoGhoul_Chapter9",
+                "TokyoGhoul_Chapter4",
+                "TokyoGhoul_Chapter7",
+                "TokyoGhoul_Chapter6",
+                "TokyoGhoul_Chapter10"
+            ]
+        },
+        "Virtual Sword": {
+            "Chapter": [
+                "SAO_Chapter7",
+                "SAO_Chapter3",
+                "SAO_Chapter5",
+                "SAO_Chapter6",
+                "SAO_Chapter4",
+                "SAO_Chapter10",
+                "SAO_Chapter9",
+                "SAO_Chapter2",
+                "SAO_Chapter1",
+                "SAO_Chapter8"
+            ]
+        },
+        "Green Planet": {
+            "Chapter": [
+                "Namek_Chapter5",
+                "Namek_Chapter8",
+                "Namek_Chapter9",
+                "Namek_Chapter6",
+                "Namek_Chapter10",
+                "Namek_Chapter4",
+                "Namek_Chapter1",
+                "Namek_Chapter7",
+                "Namek_Chapter3",
+                "Namek_Chapter2"
+            ]
+        },
+        "Leaf Village": {
+            "Chapter": [
+                "Naruto_Chapter1",
+                "Naruto_Chapter5",
+                "Naruto_Chapter9",
+                "Naruto_Chapter10",
+                "Naruto_Chapter8",
+                "Naruto_Chapter7",
+                "Naruto_Chapter4",
+                "Naruto_Chapter6",
+                "Naruto_Chapter3",
+                "Naruto_Chapter2"
+            ]
+        },
+        "Lake Of Sacrifice": {
+            "Chapter": [
+                "Berserk_Chapter3",
+                "Berserk_Chapter2",
+                "Berserk_Chapter4",
+                "Berserk_Chapter5",
+                "Berserk_Chapter9",
+                "Berserk_Chapter10",
+                "Berserk_Chapter7",
+                "Berserk_Chapter8",
+                "Berserk_Chapter1",
+                "Berserk_Chapter6"
+            ]
+        },
+        "Bizzare Race": {
+            "Chapter": [
+                "BizzareRace_Chapter1",
+                "BizzareRace_Chapter8",
+                "BizzareRace_Chapter10",
+                "BizzareRace_Chapter6",
+                "BizzareRace_Chapter9",
+                "BizzareRace_Chapter3",
+                "BizzareRace_Chapter7",
+                "BizzareRace_Chapter5",
+                "BizzareRace_Chapter4",
+                "BizzareRace_Chapter2"
+            ]
+        },
+        "Spirit Realm": {
+            "Chapter": [
+                "SoulSociety_Chapter3",
+                "SoulSociety_Chapter5",
+                "SoulSociety_Chapter10",
+                "SoulSociety_Chapter8",
+                "SoulSociety_Chapter6",
+                "SoulSociety_Chapter9",
+                "SoulSociety_Chapter2",
+                "SoulSociety_Chapter1",
+                "SoulSociety_Chapter4",
+                "SoulSociety_Chapter7"
+            ]
+        },
+        "Voocha Village": {
+            "Chapter": [
+                "OnePiece_Chapter4",
+                "OnePiece_Chapter2",
+                "OnePiece_Chapter5",
+                "OnePiece_Chapter9",
+                "OnePiece_Chapter7",
+                "OnePiece_Chapter3",
+                "OnePiece_Chapter8",
+                "OnePiece_Chapter1",
+                "OnePiece_Chapter6",
+                "OnePiece_Chapter10"
+            ]
+        },
+        "Ruined Future City": {
+            "Chapter": [
+                "DBZ2_Chapter8",
+                "DBZ2_Chapter6",
+                "DBZ2_Chapter2",
+                "DBZ2_Chapter1",
+                "DBZ2_Chapter4",
+                "DBZ2_Chapter9",
+                "DBZ2_Chapter7",
+                "DBZ2_Chapter10",
+                "DBZ2_Chapter5",
+                "DBZ2_Chapter3"
+            ]
+        },
+        "Night Colosseum": {
+            "Chapter": [
+                "JojoPart1_Chapter4",
+                "JojoPart1_Chapter3",
+                "JojoPart1_Chapter1",
+                "JojoPart1_Chapter5",
+                "JojoPart1_Chapter8",
+                "JojoPart1_Chapter10",
+                "JojoPart1_Chapter2",
+                "JojoPart1_Chapter7",
+                "JojoPart1_Chapter6",
+                "JojoPart1_Chapter9"
+            ]
+        },
+        "Demon Forest": {
+            "Chapter": [
+                "DemonSlayer_Chapter8",
+                "DemonSlayer_Chapter10",
+                "DemonSlayer_Chapter1",
+                "DemonSlayer_Chapter7",
+                "DemonSlayer_Chapter4",
+                "DemonSlayer_Chapter2",
+                "DemonSlayer_Chapter3",
+                "DemonSlayer_Chapter5",
+                "DemonSlayer_Chapter9",
+                "DemonSlayer_Chapter6"
+            ]
+        },
+        "Z City": {
+            "Chapter": [
+                "OPM_Chapter4",
+                "OPM_Chapter3",
+                "OPM_Chapter1",
+                "OPM_Chapter7",
+                "OPM_Chapter9",
+                "OPM_Chapter2",
+                "OPM_Chapter10",
+                "OPM_Chapter8",
+                "OPM_Chapter6",
+                "OPM_Chapter5"
+            ]
+        },
+        "The City": {
+            "Chapter": [
+                "ChainsawMan_Chapter4",
+                "ChainsawMan_Chapter9",
+                "ChainsawMan_Chapter2",
+                "ChainsawMan_Chapter6",
+                "ChainsawMan_Chapter8",
+                "ChainsawMan_Chapter7",
+                "ChainsawMan_Chapter10",
+                "ChainsawMan_Chapter3",
+                "ChainsawMan_Chapter5",
+                "ChainsawMan_Chapter1"
+            ]
+        }
+    },
+    "Ranger": {
+        "Ghoul City": {
+            "RangerChapter": [
+                "TokyoGhoul_RangerStage5",
+                "TokyoGhoul_RangerStage1",
+                "TokyoGhoul_RangerStage4",
+                "TokyoGhoul_RangerStage2",
+                "TokyoGhoul_RangerStage3"
+            ]
+        },
+        "Virtual Sword": {
+            "RangerChapter": [
+                "SAO_RangerStage3",
+                "SAO_RangerStage1",
+                "SAO_RangerStage2"
+            ]
+        },
+        "Green Planet": {
+            "RangerChapter": [
+                "Namek_RangerStage2",
+                "Namek_RangerStage3",
+                "Namek_RangerStage1"
+            ]
+        },
+        "Leaf Village": {
+            "RangerChapter": [
+                "Naruto_RangerStage3",
+                "Naruto_RangerStage2",
+                "Naruto_RangerStage1"
+            ]
+        },
+        "Lake Of Sacrifice": {
+            "RangerChapter": [
+                "Berserk_RangerStage3",
+                "Berserk_RangerStage2",
+                "Berserk_RangerStage1"
+            ]
+        },
+        "Spirit Realm": {
+            "RangerChapter": [
+                "SoulSociety_RangerStage3",
+                "SoulSociety_RangerStage2",
+                "SoulSociety_RangerStage1"
+            ]
+        },
+        "Voocha Village": {
+            "RangerChapter": [
+                "OnePiece_RangerStage2",
+                "OnePiece_RangerStage3",
+                "OnePiece_RangerStage1"
+            ]
+        },
+        "Ruined Future City": {
+            "RangerChapter": [
+                "DBZ2_RangerStage1",
+                "DBZ2_RangerStage3",
+                "DBZ2_RangerStage2"
+            ]
+        },
+        "Night Colosseum": {
+            "RangerChapter": [
+                "JojoPart1_RangerStage2",
+                "JojoPart1_RangerStage3",
+                "JojoPart1_RangerStage1"
+            ]
+        },
+        "Demon Forest": {
+            "RangerChapter": [
+                "DemonSlayer_RangerStage2",
+                "DemonSlayer_RangerStage1",
+                "DemonSlayer_RangerStage3"
+            ]
+        },
+        "Z City": {
+            "RangerChapter": [
+                "OPM_RangerStage3",
+                "OPM_RangerStage2",
+                "OPM_RangerStage1"
+            ]
+        },
+        "The City": {
+            "RangerChapter": [
+                "ChainsawMan_RangerStage3",
+                "ChainsawMan_RangerStage2",
+                "ChainsawMan_RangerStage1"
+            ]
+        }
+    },
+    "Raid": {
+        "Steel Blitz Rush": {
+            "RaidChapter": [
+                "SBR_Chapter3",
+                "SBR_Chapter1",
+                "SBR_Chapter2",
+                "SBR_Chapter4"
+            ]
+        },
+        "The Graveyard": {
+            "RaidChapter": [
+                "TheGraveyard_Chapter4",
+                "TheGraveyard_Chapter3",
+                "TheGraveyard_Chapter2",
+                "TheGraveyard_Chapter1"
+            ]
+        }
+    }
+}
