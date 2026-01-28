@@ -227,16 +227,20 @@ end
 local function startMain()
     dprint("Running as MAIN")
 
+    local firstOpenTime = nil
+
     Events.ClientListen("TradeInformOfRequest", function(player, sessionId)
         dprint("Incoming trade from", player.Name, "Session:", sessionId)
+
         task.wait(0.1)
         Events.ClientCall("TradePlayerConfirmStart", sessionId)
-        task.wait(0.1)
 
+        task.wait(0.1)
         pcall(function()
-            game:GetService("TextChatService").ChatInputBarConfiguration.TargetTextChannel:SendAsync(
-                "Session ID: " .. tostring(sessionId)
-            )
+            game:GetService("TextChatService")
+                .ChatInputBarConfiguration
+                .TargetTextChannel
+                :SendAsync("Session ID: " .. tostring(sessionId))
         end)
 
         dprint("MAIN -> Sent Session ID to chat:", sessionId)
@@ -244,18 +248,28 @@ local function startMain()
 
     task.spawn(function()
         while true do
-            task.wait(0.25)
+            task.wait(3)
 
             local anchor = tradeAnchor()
-            if anchor then
-                local ok, btn = pcall(function()
-                    return anchor.TradeFrame.ButtonAccept.ButtonTop
-                end)
 
-                if ok and btn and btn.Visible then
-                    hardClick(btn)
-                    dprint("MAIN -> Click Accept")
+            if anchor then
+                if not firstOpenTime then
+                    firstOpenTime = tick()
+                    dprint("MAIN -> Trade opened, waiting 3s before accept")
                 end
+
+                if tick() - firstOpenTime >= 3 then
+                    local ok, btn = pcall(function()
+                        return anchor.TradeFrame.ButtonAccept.ButtonTop
+                    end)
+
+                    if ok and btn and btn.Visible then
+                        hardClick(btn)
+                        dprint("MAIN -> Click Accept")
+                    end
+                end
+            else
+                firstOpenTime = nil
             end
 
             if CHANGE_MAIN_AT > 0 and not WROTE_MAIN_FILE then
