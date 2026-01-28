@@ -1,5 +1,5 @@
 repeat task.wait() until game:IsLoaded()
-
+print("1")
 local Players = game:GetService("Players")
 local RS = game:GetService("ReplicatedStorage")
 local UIS = game:GetService("UserInputService")
@@ -56,21 +56,37 @@ end
 -------------------------------------------------
 local LAST_SESSION_ID
 
+local TextChatService = game:GetService("TextChatService")
+
 local function hookChatListener()
-    local function parse(msg)
-        local id = tostring(msg):match("Session%s*ID%s*:%s*(%d+)")
+    dprint("Hooking TextChatService")
+
+    local function parseText(text)
+        if not text then return end
+        local id = tostring(text):match("Session%s*ID%s*:%s*(%d+)")
         if id then
             LAST_SESSION_ID = tonumber(id)
-            dprint("ALT got SessionID from chat:", LAST_SESSION_ID)
+            dprint("ALT got SessionID:", LAST_SESSION_ID)
         end
     end
 
+    -- Chat system mới (PC / console)
+    if TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
+        TextChatService.OnIncomingMessage = function(message)
+            if message and message.Text then
+                parseText(message.Text)
+            end
+        end
+        return
+    end
+
+    -- Fallback chat cũ (mobile / server cũ)
     for _, p in ipairs(Players:GetPlayers()) do
-        p.Chatted:Connect(parse)
+        p.Chatted:Connect(parseText)
     end
 
     Players.PlayerAdded:Connect(function(p)
-        p.Chatted:Connect(parse)
+        p.Chatted:Connect(parseText)
     end)
 end
 
