@@ -58,18 +58,28 @@ end
 -------------------------------------------------
 -- SESSION ID FROM SERVER (NO CHAT)
 -------------------------------------------------
-local LAST_SESSION_ID = nil
+
+
+LAST_SESSION_ID = nil
 
 Events.ClientListen("TradeUpdateInfo", function(info)
     if not info then return end
     if not info.SessionID then return end
     if not tradeAnchor() then return end
 
+    local state = tostring(info.State or ""):lower()
+
+    -- Chỉ nhận session thật
+    if state ~= "active" and state ~= "trading" then
+        dprint("Ignore temp session:", info.SessionID, "State:", info.State)
+        return
+    end
+
     LAST_SESSION_ID = tonumber(info.SessionID)
 
-    dprint("ALT got SessionID from server:",
+    dprint("ALT locked REAL SessionID:",
         LAST_SESSION_ID,
-        "State:", tostring(info.State)
+        "State:", info.State
     )
 end)
 
