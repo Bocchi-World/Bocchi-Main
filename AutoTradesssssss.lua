@@ -2,7 +2,7 @@ repeat task.wait() until game:IsLoaded()
 
 local Players = game:GetService("Players")
 local RS = game:GetService("ReplicatedStorage")
-local TextChatService = game:GetService("TextChatService")
+local UIS = game:GetService("UserInputService")
 
 local LP = Players.LocalPlayer
 local Config = getgenv().Config or {}
@@ -13,13 +13,15 @@ local StickerTypes = require(RS.Stickers.StickerTypes)
 local ClientStatCache = require(RS.ClientStatCache)
 local Events = require(RS.Events)
 
+local DEBUG = true
 local WROTE_MAIN_FILE = false
+local LAST_CLICK = 0
+local CLICK_DELAY = 0.25
 
--------------------------------------------------
--- DEBUG
--------------------------------------------------
-local function log(...)
-    print("[AUTO TRADE]", ...)
+local function dprint(...)
+    if DEBUG then
+        print("[AUTO-TRADE]", ...)
+    end
 end
 
 -------------------------------------------------
@@ -29,8 +31,51 @@ local function normalize(str)
     return tostring(str):lower():gsub("%s+", "")
 end
 
+local function tradeAnchor()
+    for _, v in ipairs(LP.PlayerGui:GetDescendants()) do
+        if v.Name == "TradeAnchorFrame" then
+            return v
+        end
+    end
+end
+
+local function waitForTradeAnchor(timeout)
+    local t0 = tick()
+    while true do
+        local anchor = tradeAnchor()
+        if anchor then return anchor end
+        if timeout and tick() - t0 > timeout then
+            return nil
+        end
+        task.wait(0.25)
+    end
+end
+
 -------------------------------------------------
--- MAIN LIST
+-- CHAT SESSIONID
+-------------------------------------------------
+local LAST_SESSION_ID
+
+local function hookChatListener()
+    local function parse(msg)
+        local id = tostring(msg):match("Session%s*ID%s*:%s*(%d+)")
+        if id then
+            LAST_SESSION_ID = tonumber(id)
+            dprint("ALT got SessionID from chat:", LAST_SESSION_ID)
+        end
+    end
+
+    for _, p in ipairs(Players:GetPlayers()) do
+        p.Chatted:Connect(parse)
+    end
+
+    Players.PlayerAdded:Connect(function(p)
+        p.Chatted:Connect(parse)
+    end)
+end
+
+-------------------------------------------------
+-- MAIN DETECT
 -------------------------------------------------
 local MAIN_LIST = {}
 
@@ -74,9 +119,9 @@ local function findMain()
 end
 
 -------------------------------------------------
--- STICKER NAME (TYPEID)
+-- STICKER HELPERS
 -------------------------------------------------
-local function getStickerNameByType(typeId)
+local function getStickerNameById(typeId)
     for name, def in pairs(StickerTypes.Types) do
         if def.ID == typeId then
             return name
@@ -85,9 +130,6 @@ local function getStickerNameByType(typeId)
     return "Unknown"
 end
 
--------------------------------------------------
--- BOOK
--------------------------------------------------
 local function getBook()
     local ok, cache = pcall(function()
         return ClientStatCache:Get()
@@ -96,31 +138,6 @@ local function getBook()
     return cache.Stickers and cache.Stickers.Book
 end
 
--------------------------------------------------
--- TRADE GUI
--------------------------------------------------
-local function tradeAnchor()
-    return LP.PlayerGui:FindFirstChild("ScreenGui")
-        and LP.PlayerGui.ScreenGui:FindFirstChild("TradeLayer")
-        and LP.PlayerGui.ScreenGui.TradeLayer:FindFirstChild("TradeAnchorFrame", true)
-end
-
-local function waitForTradeAnchor(timeout)
-    local t0 = tick()
-    while true do
-        if tradeAnchor() then return true end
-        if timeout and tick() - t0 > timeout then
-            return false
-        end
-        task.wait(0.25)
-    end
-end
-
--------------------------------------------------
--- VALID STICKERS
--- NAME = data.TypeID
--- FILE = RAW SLOT 1-4
--------------------------------------------------
 local function getValidStickers(book)
     local list = {}
     if not book then return list end
@@ -130,18 +147,17 @@ local function getValidStickers(book)
         local slot2 = data[2]
         local slot3 = data[3]
         local slot4 = data[4]
+
         local typeId = data.TypeID
+        local name = getStickerNameById(typeId)
 
-        local name = getStickerNameByType(typeId)
-
-        if Config["Sticker Trade"] then
-            for _, cfg in ipairs(Config["Sticker Trade"]) do
-                if normalize(cfg) == normalize(name) then
-                    table.insert(list, {
-                        Name = name,
-                        File = {slot1, slot2, slot3, slot4}
-                    })
-                end
+        for _, cfg in ipairs(Config["Sticker Trade"] or {}) do
+            if normalize(cfg) == normalize(name) then
+                table.insert(list, {
+                    Name = name,
+                    File = {slot1, slot2, slot3, slot4}
+                })
+                break
             end
         end
     end
@@ -149,53 +165,6 @@ local function getValidStickers(book)
     return list
 end
 
--------------------------------------------------
--- REMOTES
--------------------------------------------------
-local function addSticker(sessionId, file)
-    local args = {
-        [1] = sessionId,
-        [2] = {
-            ["File"] = {
-                [1] = file[1],
-                [2] = file[2],
-                [3] = file[3],
-                [4] = file[4]
-            },
-            ["Category"] = "Sticker"
-        }
-    }
-
-    log("ADD STICKER", sessionId, table.concat(file, ", "))
-    RS.Events.TradePlayerAddItem:FireServer(unpack(args))
-end
-
-local function acceptTrade(sessionId, altId, mainId, packs)
-    local args = {
-        [1] = sessionId,
-        [2] = {
-            [tostring(altId)] = packs,
-            [tostring(mainId)] = {}
-        }
-    }
-
-    log("ACCEPT TRADE", sessionId)
-    RS.Events.TradePlayerAccept:FireServer(unpack(args))
-end
-
--------------------------------------------------
--- FILE DONE
--------------------------------------------------
-local function completed()
-    pcall(function()
-        writefile(LP.Name .. ".txt", "Completed-DaTrade")
-    end)
-    log("DONE - NO STICKER LEFT")
-end
-
--------------------------------------------------
--- STICKER COUNT (MAIN)
--------------------------------------------------
 local function getStickerSlotCount()
     local book = getBook()
     if not book then return 0 end
@@ -203,36 +172,98 @@ local function getStickerSlotCount()
 end
 
 -------------------------------------------------
--- MAIN
+-- REMOTES
+-------------------------------------------------
+local function getRemote(name)
+    local ev = RS:FindFirstChild("Events", true)
+        and RS.Events:FindFirstChild(name, true)
+    if not ev then
+        dprint("Missing remote:", name)
+    end
+    return ev
+end
+
+local function addSticker(sessionId, file)
+    local ev = getRemote("TradePlayerAddItem")
+    if not ev then return end
+
+    dprint("ALT -> ADD", sessionId, table.concat(file, ","))
+
+    ev:FireServer(sessionId, {
+        ["File"] = {
+            [1] = file[1],
+            [2] = file[2],
+            [3] = file[3],
+            [4] = file[4]
+        },
+        ["Category"] = "Sticker"
+    })
+end
+
+local function acceptTrade(sessionId, altId, mainId, packs)
+    local ev = getRemote("TradePlayerAccept")
+    if not ev then return end
+
+    dprint("ALT -> ACCEPT", sessionId, "Packs:", #packs)
+
+    ev:FireServer(sessionId, {
+        [tostring(altId)] = packs,
+        [tostring(mainId)] = {}
+    })
+end
+
+-------------------------------------------------
+-- FILE
+-------------------------------------------------
+local function completed(tag)
+    pcall(function()
+        writefile(LP.Name .. ".txt", tag or "Completed-DaTrade")
+    end)
+end
+
+-------------------------------------------------
+-- MAIN LOGIC
 -------------------------------------------------
 local function startMain()
-    log("RUNNING AS MAIN")
+    dprint("Running as MAIN")
 
     Events.ClientListen("TradeInformOfRequest", function(player, sessionId)
-        log("INCOMING TRADE:", player.Name, "SESSION:", sessionId)
-
+        dprint("Incoming trade from", player.Name, "Session:", sessionId)
         task.wait(0.1)
         Events.ClientCall("TradePlayerConfirmStart", sessionId)
+        task.wait(0.1)
 
-        task.wait(0.2)
         pcall(function()
-            TextChatService.TextChannels.RBXGeneral:SendAsync(
+            game:GetService("TextChatService").ChatInputBarConfiguration.TargetTextChannel:SendAsync(
                 "Session ID: " .. tostring(sessionId)
             )
         end)
+
+        dprint("MAIN -> Sent Session ID to chat:", sessionId)
     end)
 
     task.spawn(function()
         while true do
-            task.wait(2)
+            task.wait(0.25)
+
+            local anchor = tradeAnchor()
+            if anchor then
+                local ok, btn = pcall(function()
+                    return anchor.TradeFrame.ButtonAccept.ButtonTop
+                end)
+
+                if ok and btn and btn.Visible then
+                    hardClick(btn)
+                    dprint("MAIN -> Click Accept")
+                end
+            end
+
             if CHANGE_MAIN_AT > 0 and not WROTE_MAIN_FILE then
                 local total = getStickerSlotCount()
                 if total >= CHANGE_MAIN_AT then
                     WROTE_MAIN_FILE = true
-                    pcall(function()
-                        writefile(LP.Name .. ".txt", "Completed-MainAutoTrade")
-                    end)
-                    log("MAIN LIMIT HIT:", total)
+                    completed("Completed-MainAutoTrade")
+                    dprint("MAIN completed at", total)
                 end
             end
         end
@@ -240,10 +271,11 @@ local function startMain()
 end
 
 -------------------------------------------------
--- ALT
+-- ALT LOGIC
 -------------------------------------------------
 local function startAlt()
-    log("RUNNING AS ALT")
+    dprint("Running as ALT")
+    hookChatListener()
 
     local main
     repeat
@@ -251,59 +283,66 @@ local function startAlt()
         task.wait(1)
     until main
 
-    log("FOUND MAIN:", main.Name)
-
-    local currentSessionId = nil
-
-    Events.ClientListen("TradeInformOfRequest", function(_, sid)
-        currentSessionId = sid
-        log("SESSION RECEIVED:", sid)
-    end)
+    dprint("Found MAIN:", main.Name, main.UserId)
 
     while true do
         local book = getBook()
         local valid = getValidStickers(book)
 
         if #valid == 0 then
-            completed()
+            dprint("No stickers left, completed")
+            completed("Completed-DaTrade")
             return
         end
 
         if not tradeAnchor() then
-            log("REQUEST TRADE")
+            dprint("Request trade to MAIN")
             pcall(function()
                 RS.Events.TradePlayerRequestStart:FireServer(main.UserId)
             end)
+        else
+            dprint("Trade already open, skip request")
         end
 
-        if not waitForTradeAnchor(20) then
-            log("NO TRADE GUI, RETRY")
+        local anchor = waitForTradeAnchor(30)
+        if not anchor then
+            dprint("Trade UI timeout, retry")
             task.wait(2)
             continue
         end
 
+        LAST_SESSION_ID = nil
         local t0 = tick()
-        while not currentSessionId and tradeAnchor() do
-            if tick() - t0 > 15 then break end
+        while tradeAnchor() and not LAST_SESSION_ID do
+            if tick() - t0 > 20 then break end
             task.wait(0.1)
         end
 
-        if not currentSessionId then
-            log("NO SESSION, RETRY")
+        if not LAST_SESSION_ID then
+            dprint("No SessionID from chat, retry trade")
             task.wait(2)
             continue
         end
+
+        local sessionId = LAST_SESSION_ID
+        dprint("ALT using SessionID:", sessionId)
 
         local packs = {}
         local idx = 1
 
         for _, sticker in ipairs(valid) do
-            if not tradeAnchor() then
-                log("TRADE CLOSED, WAIT MAIN")
-                break
+            while not tradeAnchor() do
+                dprint("Trade closed, waiting MAIN")
+                task.wait(1)
+                main = findMain()
+                if main then
+                    pcall(function()
+                        RS.Events.TradePlayerRequestStart:FireServer(main.UserId)
+                    end)
+                end
             end
 
-            addSticker(currentSessionId, sticker.File)
+            addSticker(sessionId, sticker.File)
 
             packs[idx] = {
                 ["Pack"] = {
@@ -328,11 +367,11 @@ local function startAlt()
 
         if tradeAnchor() and #packs > 0 then
             task.wait(0.3)
-            acceptTrade(currentSessionId, LP.UserId, main.UserId, packs)
+            acceptTrade(sessionId, LP.UserId, main.UserId, packs)
         end
 
         repeat task.wait(0.5) until not tradeAnchor()
-        currentSessionId = nil
+        dprint("Trade ended, retry loop")
         task.wait(2)
     end
 end
