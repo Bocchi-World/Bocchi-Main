@@ -2,6 +2,7 @@ repeat task.wait() until game:IsLoaded()
 
 local Players = game:GetService("Players")
 local RS = game:GetService("ReplicatedStorage")
+local TextChatService = game:GetService("TextChatService")
 
 local LP = Players.LocalPlayer
 local Config = getgenv().Config or {}
@@ -73,9 +74,9 @@ local function findMain()
 end
 
 -------------------------------------------------
--- STICKER NAME
+-- STICKER NAME (TYPEID)
 -------------------------------------------------
-local function getStickerNameById(typeId)
+local function getStickerNameByType(typeId)
     for name, def in pairs(StickerTypes.Types) do
         if def.ID == typeId then
             return name
@@ -117,7 +118,8 @@ end
 
 -------------------------------------------------
 -- VALID STICKERS
--- FIX: SLOT 3 = data[3] (RAW)
+-- NAME = data.TypeID
+-- FILE = RAW SLOT 1-4
 -------------------------------------------------
 local function getValidStickers(book)
     local list = {}
@@ -128,8 +130,9 @@ local function getValidStickers(book)
         local slot2 = data[2]
         local slot3 = data[3]
         local slot4 = data[4]
+        local typeId = data.TypeID
 
-        local name = getStickerNameById(slot3)
+        local name = getStickerNameByType(typeId)
 
         if Config["Sticker Trade"] then
             for _, cfg in ipairs(Config["Sticker Trade"]) do
@@ -200,19 +203,20 @@ local function getStickerSlotCount()
 end
 
 -------------------------------------------------
--- MAIN LOGIC
+-- MAIN
 -------------------------------------------------
 local function startMain()
     log("RUNNING AS MAIN")
 
     Events.ClientListen("TradeInformOfRequest", function(player, sessionId)
-        log("INCOMING TRADE FROM", player.Name, "SESSION", sessionId)
+        log("INCOMING TRADE:", player.Name, "SESSION:", sessionId)
+
         task.wait(0.1)
         Events.ClientCall("TradePlayerConfirmStart", sessionId)
 
         task.wait(0.2)
         pcall(function()
-            game:GetService("TextChatService").TextChannels.RBXGeneral:SendAsync(
+            TextChatService.TextChannels.RBXGeneral:SendAsync(
                 "Session ID: " .. tostring(sessionId)
             )
         end)
@@ -228,7 +232,7 @@ local function startMain()
                     pcall(function()
                         writefile(LP.Name .. ".txt", "Completed-MainAutoTrade")
                     end)
-                    log("MAIN LIMIT REACHED", total)
+                    log("MAIN LIMIT HIT:", total)
                 end
             end
         end
@@ -236,7 +240,7 @@ local function startMain()
 end
 
 -------------------------------------------------
--- ALT LOGIC
+-- ALT
 -------------------------------------------------
 local function startAlt()
     log("RUNNING AS ALT")
