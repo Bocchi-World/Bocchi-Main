@@ -1,5 +1,5 @@
 repeat task.wait() until game:IsLoaded()
-
+print("1")
 local Players = game:GetService("Players")
 local RS = game:GetService("ReplicatedStorage")
 local GuiService = game:GetService("GuiService")
@@ -42,32 +42,47 @@ local function waitForTradeAnchor(timeout)
     end
 end
 
+local LAST_CLICK = 0
+local CLICK_DELAY = 0.15
+
+local function fireConnections(signal)
+    local ok, conns = pcall(function()
+        return getconnections(signal)
+    end)
+    if not ok or not conns then return false end
+
+    for _, c in ipairs(conns) do
+        if typeof(c.Function) == "function" then
+            local success = pcall(c.Function)
+            if success then
+                return true
+            end
+        end
+    end
+    return false
+end
+
 local function smartGuiClick(btn)
-    if not btn then return end
+    if not btn then return false end
+    if not btn.Visible or not btn.Active then return false end
+    if tick() - LAST_CLICK < CLICK_DELAY then return false end
 
-    pcall(function()
-        for _, c in ipairs(getconnections(btn.Activated)) do
-            c:Function()
-        end
-    end)
+    LAST_CLICK = tick()
 
-    pcall(function()
-        for _, c in ipairs(getconnections(btn.MouseButton1Click)) do
-            c:Function()
-        end
-    end)
+    if btn:IsA("GuiButton") then
+        -- Ưu tiên logic nội bộ của game
+        if fireConnections(btn.Activated) then return true end
+        if fireConnections(btn.MouseButton1Click) then return true end
 
-    pcall(function()
-        GuiService.SelectedObject = btn
-        task.wait(0.05)
+        -- Fallback Roblox native
+        pcall(function()
+            btn:Activate()
+        end)
 
-        local pos = btn.AbsolutePosition + (btn.AbsoluteSize / 2)
-        VIM:SendMouseButtonEvent(pos.X, pos.Y, 0, true, game, 0)
-        task.wait(0.05)
-        VIM:SendMouseButtonEvent(pos.X, pos.Y, 0, false, game, 0)
+        return true
+    end
 
-        GuiService.SelectedObject = nil
-    end)
+    return false
 end
 
 local function pushMain(v)
