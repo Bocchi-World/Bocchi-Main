@@ -124,8 +124,8 @@ local function getValidStickers(book)
         local slot2 = data[2]
         local slot3 = data[3]
         local slot4 = data[4]
-        local typeId = data.TypeID or slot3
 
+        local typeId = data.TypeID or slot3
         local name = getStickerNameById(typeId)
 
         for _, cfg in ipairs(Config["Sticker Trade"] or {}) do
@@ -190,21 +190,16 @@ local function acceptTrade(sessionId, altId, mainId, packs)
 end
 
 -------------------------------------------------
--- SESSION LISTENER (NO CHAT)
+-- SESSION LISTENER (SERVER BASED, NO CHAT)
 -------------------------------------------------
 Events.ClientListen("TradeUpdateInfo", function(info)
     if not info or not info.SessionID then return end
+    if not tradeAnchor() then return end
 
-    local myId = tostring(LP.UserId)
-    local theirId = (myId == info.Host) and info.Player2 or info.Host
-
-    LAST_SESSION_ID = info.SessionID
-
-    dprint("SESSION UPDATE:",
-        "Session =", info.SessionID,
-        "State =", tostring(info.State),
-        "With =", tostring(theirId)
-    )
+    if LAST_SESSION_ID ~= info.SessionID then
+        LAST_SESSION_ID = info.SessionID
+        dprint("SESSION LOCKED:", info.SessionID, "State:", tostring(info.State))
+    end
 end)
 
 -------------------------------------------------
@@ -240,7 +235,7 @@ local function startMain()
             if anchor then
                 if not firstOpenTime then
                     firstOpenTime = tick()
-                    dprint("MAIN -> Trade opened, waiting 3s before accept")
+                    dprint("MAIN -> Trade opened, wait 3s")
                 end
 
                 if tick() - firstOpenTime >= 3 then
@@ -302,12 +297,11 @@ local function startAlt()
 
         local anchor = waitForTradeAnchor(30)
         if not anchor then
-            dprint("Trade UI timeout, retry")
+            dprint("Trade UI timeout")
             task.wait(2)
             continue
         end
 
-        LAST_SESSION_ID = nil
         local t0 = tick()
         while tradeAnchor() and not LAST_SESSION_ID do
             if tick() - t0 > 20 then break end
@@ -315,7 +309,7 @@ local function startAlt()
         end
 
         if not LAST_SESSION_ID then
-            dprint("No SessionID from server, retry trade")
+            dprint("No SessionID, retry trade")
             task.wait(2)
             continue
         end
@@ -328,6 +322,7 @@ local function startAlt()
 
         for _, sticker in ipairs(valid) do
             while not tradeAnchor() do
+                dprint("Trade closed, waiting MAIN")
                 task.wait(1)
             end
 
@@ -360,7 +355,7 @@ local function startAlt()
         end
 
         repeat task.wait(0.5) until not tradeAnchor()
-        dprint("Trade ended, retry loop")
+        dprint("Trade ended, looping")
         task.wait(2)
     end
 end
