@@ -384,14 +384,11 @@ local function runTrashDiscardLoop()
                             local ev = getRemote("StickerDiscard")
                             if ev then
                                 ev:FireServer({
-                                    [1] = {
-                                        [1] = slot1,
-                                        [2] = slot2,
-                                        [3] = slot3,
-                                        [4] = slot4
-                                    },
-                                    [2] = false
-                                })
+                                    [1] = slot1,
+                                    [2] = slot2,
+                                    [3] = slot3,
+                                    [4] = slot4
+                                }, false)
                                 task.wait(0.3)
                             end
                         end
@@ -413,6 +410,7 @@ local function runAutoClaimStickerInbox()
                 if ok and cache and cache.Stickers and cache.Stickers.Inbox then
                     local inbox = cache.Stickers.Inbox
                     local book = getBook() or {}
+
                     local usedSlots = {}
                     for _, data in ipairs(book) do
                         local slot = data[4] or data.Slot
@@ -420,6 +418,7 @@ local function runAutoClaimStickerInbox()
                             usedSlots[slot] = true
                         end
                     end
+
                     local function findEmptySlot()
                         local i = 1
                         while true do
@@ -432,23 +431,23 @@ local function runAutoClaimStickerInbox()
 
                     local ev = getRemote("StickerClaimFromInbox")
                     if ev then
-                        for _, data in ipairs(inbox) do
+                        for i = #inbox, 1, -1 do
+                            local data = inbox[i]
+
                             local slot1 = data[1]
                             local slot2 = data[2]
                             local slot3 = data[3]
                             local emptySlot = findEmptySlot()
-
                             usedSlots[emptySlot] = true
 
                             ev:FireServer({
-                                [1] = {
-                                    [1] = slot1,
-                                    [2] = slot2,
-                                    [3] = slot3,
-                                    [4] = emptySlot
-                                }
-                            })
+                                [1] = slot1,
+                                [2] = slot2,
+                                [3] = slot3,
+                                [4] = emptySlot
+                            }, false)
 
+                            table.remove(inbox, i)
                             task.wait(0.4)
                         end
                     end
