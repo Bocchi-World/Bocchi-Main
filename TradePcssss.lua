@@ -166,7 +166,7 @@ local function addSticker(sessionId, file)
 
     dprint("ALT -> ADD", sessionId, table.concat(file, ","))
 
-    ev:FireServer(sessionId, {
+    local payload = {
         ["File"] = {
             [1] = file[1],
             [2] = file[2],
@@ -174,19 +174,32 @@ local function addSticker(sessionId, file)
             [4] = file[4]
         },
         ["Category"] = "Sticker"
-    })
+    }
+
+    -- Ưu tiên đi qua middleware của game
+    if Events and Events.ClientCall then
+        Events.ClientCall("TradePlayerAddItem", sessionId, payload)
+    else
+        ev:FireServer(sessionId, payload)
+    end
 end
 
 local function acceptTrade(sessionId, altId, mainId, packs)
-    local ev = getRemote("TradePlayerAccept")
-    if not ev then return end
+    local payload = {
+        [tostring(altId)] = packs,
+        [tostring(mainId)] = {}
+    }
 
     dprint("ALT -> ACCEPT", sessionId, "Packs:", #packs)
 
-    ev:FireServer(sessionId, {
-        [tostring(altId)] = packs,
-        [tostring(mainId)] = {}
-    })
+    if Events and Events.ClientCall then
+        Events.ClientCall("TradePlayerAccept", sessionId, payload)
+    else
+        local ev = getRemote("TradePlayerAccept")
+        if ev then
+            ev:FireServer(sessionId, payload)
+        end
+    end
 end
 
 -------------------------------------------------
