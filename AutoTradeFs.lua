@@ -360,7 +360,47 @@ local function startAlt()
         task.wait(2)
     end
 end
+local function runTrashDiscardLoop()
+    task.spawn(function()
+        while true do
+            if Config["Discard trash sticker"] then
+                local book = getBook()
+                if book then
+                    for _, data in ipairs(book) do
+                        local slot1, slot2, slot3, slot4 = data[1], data[2], data[3], data[4]
+                        local typeId = data.TypeID or slot3
+                        local name = getStickerNameById(typeId)
 
+                        local allowed = false
+                        for _, cfg in ipairs(Config["Sticker Trade"] or {}) do
+                            if normalize(cfg) == normalize(name) then
+                                allowed = true
+                                break
+                            end
+                        end
+
+                        if not allowed then
+                            local ev = getRemote("StickerDiscard")
+                            if ev then
+                                ev:FireServer({
+                                    [1] = {
+                                        [1] = slot1,
+                                        [2] = slot2,
+                                        [3] = slot3,
+                                        [4] = slot4
+                                    },
+                                    [2] = false
+                                })
+                                task.wait(0.3)
+                            end
+                        end
+                    end
+                end
+            end
+            task.wait(5)
+        end
+    end)
+end
 task.spawn(function()
     if isMain() then
         startMain()
@@ -368,3 +408,4 @@ task.spawn(function()
         startAlt()
     end
 end)
+runTrashDiscardLoop()
