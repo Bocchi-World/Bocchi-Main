@@ -1,9 +1,9 @@
 repeat task.wait() until game:IsLoaded()
-
 print("AUTO TRADE START")
 
 local Players = game:GetService("Players")
 local RS = game:GetService("ReplicatedStorage")
+local UIS = game:GetService("UserInputService")
 
 local LP = Players.LocalPlayer
 local Config = getgenv().Config or {}
@@ -16,8 +16,12 @@ local Events = require(RS.Events)
 
 local DEBUG = true
 local WROTE_MAIN_FILE = false
-local LAST_SESSION_ID = nil
+local LAST_CLICK = 0
+local CLICK_DELAY = 0.25
 
+-------------------------------------------------
+-- DEBUG
+-------------------------------------------------
 local function dprint(...)
     if DEBUG then
         print("[AUTO-TRADE]", ...)
@@ -50,6 +54,24 @@ local function waitForTradeAnchor(timeout)
         task.wait(0.25)
     end
 end
+
+-------------------------------------------------
+-- SESSION ID FROM SERVER (NO CHAT)
+-------------------------------------------------
+local LAST_SESSION_ID = nil
+
+Events.ClientListen("TradeUpdateInfo", function(info)
+    if not info then return end
+    if not info.SessionID then return end
+    if not tradeAnchor() then return end
+
+    LAST_SESSION_ID = tonumber(info.SessionID)
+
+    dprint("ALT got SessionID from server:",
+        LAST_SESSION_ID,
+        "State:", tostring(info.State)
+    )
+end)
 
 -------------------------------------------------
 -- MAIN DETECT
@@ -96,7 +118,7 @@ local function findMain()
 end
 
 -------------------------------------------------
--- STICKERS
+-- STICKER HELPERS
 -------------------------------------------------
 local function getStickerNameById(typeId)
     for name, def in pairs(StickerTypes.Types) do
@@ -166,54 +188,28 @@ local function addSticker(sessionId, file)
 
     dprint("ALT -> ADD", sessionId, table.concat(file, ","))
 
-    local payload = {
+    ev:FireServer(sessionId, {
+        ["Category"] = "Sticker",
         ["File"] = {
             [1] = file[1],
             [2] = file[2],
             [3] = file[3],
             [4] = file[4]
-        },
-        ["Category"] = "Sticker"
-    }
-
-    -- Ưu tiên đi qua middleware của game
-    if Events and Events.ClientCall then
-        Events.ClientCall("TradePlayerAddItem", sessionId, payload)
-    else
-        ev:FireServer(sessionId, payload)
-    end
+        }
+    })
 end
 
 local function acceptTrade(sessionId, altId, mainId, packs)
-    local payload = {
-        [tostring(altId)] = packs,
-        [tostring(mainId)] = {}
-    }
+    local ev = getRemote("TradePlayerAccept")
+    if not ev then return end
 
     dprint("ALT -> ACCEPT", sessionId, "Packs:", #packs)
 
-    if Events and Events.ClientCall then
-        Events.ClientCall("TradePlayerAccept", sessionId, payload)
-    else
-        local ev = getRemote("TradePlayerAccept")
-        if ev then
-            ev:FireServer(sessionId, payload)
-        end
-    end
+    ev:FireServer(sessionId, {
+        [tostring(altId)] = packs,
+        [tostring(mainId)] = {}
+    })
 end
-
--------------------------------------------------
--- SESSION LISTENER (SERVER BASED, NO CHAT)
--------------------------------------------------
-Events.ClientListen("TradeUpdateInfo", function(info)
-    if not info or not info.SessionID then return end
-    if not tradeAnchor() then return end
-
-    if LAST_SESSION_ID ~= info.SessionID then
-        LAST_SESSION_ID = info.SessionID
-        dprint("SESSION LOCKED:", info.SessionID, "State:", tostring(info.State))
-    end
-end)
 
 -------------------------------------------------
 -- FILE
@@ -248,7 +244,7 @@ local function startMain()
             if anchor then
                 if not firstOpenTime then
                     firstOpenTime = tick()
-                    dprint("MAIN -> Trade opened, wait 3s")
+                    dprint("MAIN -> Trade opened, waiting 3s before accept")
                 end
 
                 if tick() - firstOpenTime >= 3 then
@@ -310,11 +306,12 @@ local function startAlt()
 
         local anchor = waitForTradeAnchor(30)
         if not anchor then
-            dprint("Trade UI timeout")
+            dprint("Trade UI timeout, retry")
             task.wait(2)
             continue
         end
 
+        LAST_SESSION_ID = nil
         local t0 = tick()
         while tradeAnchor() and not LAST_SESSION_ID do
             if tick() - t0 > 20 then break end
@@ -337,6 +334,12 @@ local function startAlt()
             while not tradeAnchor() do
                 dprint("Trade closed, waiting MAIN")
                 task.wait(1)
+                main = findMain()
+                if main then
+                    pcall(function()
+                        RS.Events.TradePlayerRequestStart:FireServer(main.UserId)
+                    end)
+                end
             end
 
             addSticker(sessionId, sticker.File)
@@ -368,7 +371,7 @@ local function startAlt()
         end
 
         repeat task.wait(0.5) until not tradeAnchor()
-        dprint("Trade ended, looping")
+        dprint("Trade ended, retry loop")
         task.wait(2)
     end
 end
