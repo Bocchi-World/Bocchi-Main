@@ -61,7 +61,7 @@ end
 
 
 local LAST_SESSION_ID = nil
-local LAST_SESSION_TIME = 0
+local SESSION_LOCKED = false
 
 Events.ClientListen("TradeUpdateInfo", function(info)
     if not info or not info.SessionID then return end
@@ -73,12 +73,17 @@ Events.ClientListen("TradeUpdateInfo", function(info)
         "State =", info.State
     )
 
+    -- Chỉ bắt session khi CHƯA mở trade UI
+    if tradeAnchor() then return end
+    if SESSION_LOCKED then return end
+
+    -- Ongoing là session thật
     if state ~= "ongoing" then return end
 
     LAST_SESSION_ID = tonumber(info.SessionID)
-    LAST_SESSION_TIME = tick()
+    SESSION_LOCKED = true
 
-    dprint("SESSION LOCKED:", LAST_SESSION_ID)
+    dprint("SESSION PRE-LOCKED:", LAST_SESSION_ID)
 end)
 
 -------------------------------------------------
@@ -305,7 +310,18 @@ local function startAlt()
             return
         end
 
-        -- Request trade if not opened
+        -------------------------------------------------
+        -- RESET SESSION IF TRADE CLOSED
+        -------------------------------------------------
+        if not tradeAnchor() and SESSION_LOCKED then
+            dprint("Trade closed -> reset session")
+            SESSION_LOCKED = false
+            LAST_SESSION_ID = nil
+        end
+
+        -------------------------------------------------
+        -- REQUEST TRADE
+        -------------------------------------------------
         if not tradeAnchor() then
             dprint("Request trade to MAIN")
             pcall(function()
@@ -313,7 +329,9 @@ local function startAlt()
             end)
         end
 
-        -- Wait for UI
+        -------------------------------------------------
+        -- WAIT FOR UI
+        -------------------------------------------------
         local anchor = waitForTradeAnchor(30)
         if not anchor then
             dprint("Trade UI timeout, retry")
@@ -322,35 +340,25 @@ local function startAlt()
         end
 
         -------------------------------------------------
-        -- WAIT FOR REAL SESSION FROM SERVER
+        -- WAIT FOR SESSION (PRE-LOCKED FROM SERVER)
         -------------------------------------------------
-        local mySession = nil
-        local startTime = tick()
-
-        LAST_SESSION_ID = nil
-        LAST_SESSION_TIME = 0
-
-        while tradeAnchor() and not mySession do
-            if LAST_SESSION_ID and LAST_SESSION_TIME >= startTime then
-                mySession = LAST_SESSION_ID
+        local t0 = tick()
+        while tradeAnchor() and not LAST_SESSION_ID do
+            if tick() - t0 > 15 then
                 break
             end
-
-            if tick() - startTime > 20 then
-                break
-            end
-
             task.wait(0.1)
         end
 
-        if not mySession then
+        if not LAST_SESSION_ID then
             dprint("No SessionID, retry trade")
+            SESSION_LOCKED = false
             task.wait(2)
             continue
         end
 
-        local sessionId = mySession
-        dprint("ALT LOCKED SESSION:", sessionId)
+        local sessionId = LAST_SESSION_ID
+        dprint("ALT USING SESSION:", sessionId)
 
         -------------------------------------------------
         -- BUILD PACKS + ADD STICKERS
@@ -361,6 +369,9 @@ local function startAlt()
         for _, sticker in ipairs(valid) do
             while not tradeAnchor() do
                 dprint("Trade closed, waiting MAIN")
+                SESSION_LOCKED = false
+                LAST_SESSION_ID = nil
+
                 task.wait(1)
                 main = findMain()
                 if main then
@@ -409,7 +420,10 @@ local function startAlt()
             task.wait(0.5)
         until not tradeAnchor()
 
-        dprint("Trade ended, retry loop")
+        dprint("Trade ended, resetting session")
+        SESSION_LOCKED = false
+        LAST_SESSION_ID = nil
+
         task.wait(2)
     end
 end
