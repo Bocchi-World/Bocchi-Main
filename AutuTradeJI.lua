@@ -1,18 +1,4 @@
-getgenv().Config = {
-    ["Main Account"] = {
-        "1234567890",
-        "MainAccName"
-    },
-    ["Change Acc Main When Has Sticker"] = 16,
-    ["Sticker Trade"] = {
-        "Star Sign",
-        "Lucky Cat",
-        "Dragon",
-        "Phoenix"
-    },
-    ["Discard trash sticker"] = false,
-    ["Auto Claim Sticker Inbox"] = false
-}
+
 repeat task.wait() until game:IsLoaded()
 print("1")
 local Players = game:GetService("Players")
