@@ -60,7 +60,8 @@ end
 -------------------------------------------------
 
 
-LAST_SESSION_ID = nil
+local LAST_SESSION_ID = nil
+local LAST_SESSION_TIME = 0
 
 Events.ClientListen("TradeUpdateInfo", function(info)
     if not info or not info.SessionID then return end
@@ -72,11 +73,10 @@ Events.ClientListen("TradeUpdateInfo", function(info)
         "State =", info.State
     )
 
-    if state ~= "ongoing" then
-        return
-    end
+    if state ~= "ongoing" then return end
 
     LAST_SESSION_ID = tonumber(info.SessionID)
+    LAST_SESSION_TIME = tick()
 
     dprint("SESSION LOCKED:", LAST_SESSION_ID)
 end)
@@ -321,27 +321,40 @@ local function startAlt()
             continue
         end
 
-        -- Wait for REAL session from server
-        LAST_SESSION_ID = nil
-        local t0 = tick()
+        -------------------------------------------------
+        -- WAIT FOR REAL SESSION FROM SERVER
+        -------------------------------------------------
+        local mySession = nil
+        local startTime = tick()
 
-        while tradeAnchor() and not LAST_SESSION_ID do
-            if tick() - t0 > 20 then
+        LAST_SESSION_ID = nil
+        LAST_SESSION_TIME = 0
+
+        while tradeAnchor() and not mySession do
+            if LAST_SESSION_ID and LAST_SESSION_TIME >= startTime then
+                mySession = LAST_SESSION_ID
                 break
             end
+
+            if tick() - startTime > 20 then
+                break
+            end
+
             task.wait(0.1)
         end
 
-        if not LAST_SESSION_ID then
+        if not mySession then
             dprint("No SessionID, retry trade")
             task.wait(2)
             continue
         end
 
-        local sessionId = LAST_SESSION_ID
-        dprint("ALT using SessionID:", sessionId)
+        local sessionId = mySession
+        dprint("ALT LOCKED SESSION:", sessionId)
 
-        -- Build packs
+        -------------------------------------------------
+        -- BUILD PACKS + ADD STICKERS
+        -------------------------------------------------
         local packs = {}
         local idx = 1
 
@@ -380,14 +393,18 @@ local function startAlt()
             task.wait(0.2)
         end
 
-        -- Accept trade
+        -------------------------------------------------
+        -- ACCEPT TRADE
+        -------------------------------------------------
         if tradeAnchor() and #packs > 0 then
             task.wait(0.5)
             acceptTrade(sessionId, LP.UserId, main.UserId, packs)
             dprint("ALT -> ACCEPT SENT")
         end
 
-        -- Wait trade close
+        -------------------------------------------------
+        -- WAIT FOR TRADE CLOSE
+        -------------------------------------------------
         repeat
             task.wait(0.5)
         until not tradeAnchor()
