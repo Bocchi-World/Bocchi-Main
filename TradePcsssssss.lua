@@ -60,26 +60,28 @@ end
 -------------------------------------------------
 
 
-LAST_SESSION_ID = nil
+LAST_REAL_SESSION = nil
 
 Events.ClientListen("TradeUpdateInfo", function(info)
     if not info then return end
     if not info.SessionID then return end
-    if not tradeAnchor() then return end
 
     local state = tostring(info.State or ""):lower()
 
-    -- Chỉ nhận session thật
-    if state ~= "active" and state ~= "trading" then
-        dprint("Ignore temp session:", info.SessionID, "State:", info.State)
+    dprint("RAW UPDATE:",
+        "Session =", info.SessionID,
+        "State =", info.State
+    )
+
+    -- BSS dùng Ongoing là trade thật
+    if state ~= "ongoing" then
         return
     end
 
-    LAST_SESSION_ID = tonumber(info.SessionID)
+    LAST_REAL_SESSION = tonumber(info.SessionID)
 
-    dprint("ALT locked REAL SessionID:",
-        LAST_SESSION_ID,
-        "State:", info.State
+    dprint("SESSION LOCKED:",
+        LAST_REAL_SESSION
     )
 end)
 
