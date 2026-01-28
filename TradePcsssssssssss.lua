@@ -54,7 +54,46 @@ local function waitForTradeAnchor(timeout)
         task.wait(0.25)
     end
 end
+local GuiService = game:GetService("GuiService")
+local VIM = game:GetService("VirtualInputManager")
 
+local function smartGuiClick(btn)
+    if not btn then return end
+
+    pcall(function()
+        for _, c in ipairs(getconnections(btn.Activated)) do
+            c:Function()
+        end
+    end)
+
+    pcall(function()
+        for _, c in ipairs(getconnections(btn.MouseButton1Click)) do
+            c:Function()
+        end
+    end)
+
+    pcall(function()
+        GuiService.SelectedObject = btn
+        task.wait(0.05)
+
+        local pos = btn.AbsolutePosition + (btn.AbsoluteSize / 2)
+        VIM:SendMouseButtonEvent(pos.X, pos.Y, 0, true, game, 0)
+        task.wait(0.05)
+        VIM:SendMouseButtonEvent(pos.X, pos.Y, 0, false, game, 0)
+
+        GuiService.SelectedObject = nil
+    end)
+end
+
+local function shouldAccept(btn)
+    local ok, label = pcall(function()
+        return btn:FindFirstChild("TextLabel", true)
+    end)
+    if ok and label and label.Text then
+        return label.Text:lower() == "accept"
+    end
+    return false
+end
 -------------------------------------------------
 -- SESSION ID FROM SERVER (NO CHAT)
 -------------------------------------------------
@@ -237,53 +276,50 @@ end
 -- MAIN LOGIC
 -------------------------------------------------
 local function startMain()
-    dprint("Running as MAIN")
-
     local firstOpenTime = nil
 
     Events.ClientListen("TradeInformOfRequest", function(player, sessionId)
-        dprint("Incoming trade from", player.Name, "Session:", sessionId)
-
         task.wait(0.1)
         Events.ClientCall("TradePlayerConfirmStart", sessionId)
     end)
 
-    task.spawn(function()
-        while true do
-            task.wait(3)
+    while true do
+        local anchor = tradeAnchor()
 
-            local anchor = tradeAnchor()
+        if anchor then
+            if not firstOpenTime then
+                firstOpenTime = tick()
+            end
 
-            if anchor then
-                if not firstOpenTime then
-                    firstOpenTime = tick()
-                    dprint("MAIN -> Trade opened, waiting 3s before accept")
-                end
+            if tick() - firstOpenTime >= 2 then
+                local ok, btn = pcall(function()
+                    return anchor.TradeFrame.ButtonAccept.ButtonTop
+                end)
 
-                if tick() - firstOpenTime >= 3 then
-                    local ok, btn = pcall(function()
-                        return anchor.TradeFrame.ButtonAccept.ButtonTop
+                if ok and btn and btn.Visible then
+                    local ok2, label = pcall(function()
+                        return btn:FindFirstChild("TextLabel", true)
                     end)
 
-                    if ok and btn and btn.Visible then
-                        hardClick(btn)
-                        dprint("MAIN -> Click Accept")
+                    if ok2 and label and tostring(label.Text):lower() == "accept" then
+                        smartGuiClick(btn)
                     end
                 end
-            else
-                firstOpenTime = nil
             end
+        else
+            firstOpenTime = nil
+        end
 
-            if CHANGE_MAIN_AT > 0 and not WROTE_MAIN_FILE then
-                local total = getStickerSlotCount()
-                if total >= CHANGE_MAIN_AT then
-                    WROTE_MAIN_FILE = true
-                    completed("Completed-MainAutoTrade")
-                    dprint("MAIN completed at", total)
-                end
+        if CHANGE_MAIN_AT > 0 and not WROTE_MAIN_FILE then
+            local total = getStickerSlotCount()
+            if total >= CHANGE_MAIN_AT then
+                WROTE_MAIN_FILE = true
+                completed("Completed-MainAutoTrade")
             end
         end
-    end)
+
+        task.wait(3)
+    end
 end
 
 -------------------------------------------------
