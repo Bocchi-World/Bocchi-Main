@@ -60,11 +60,10 @@ end
 -------------------------------------------------
 
 
-LAST_REAL_SESSION = nil
+LAST_SESSION_ID = nil
 
 Events.ClientListen("TradeUpdateInfo", function(info)
-    if not info then return end
-    if not info.SessionID then return end
+    if not info or not info.SessionID then return end
 
     local state = tostring(info.State or ""):lower()
 
@@ -73,16 +72,13 @@ Events.ClientListen("TradeUpdateInfo", function(info)
         "State =", info.State
     )
 
-    -- BSS dùng Ongoing là trade thật
     if state ~= "ongoing" then
         return
     end
 
-    LAST_REAL_SESSION = tonumber(info.SessionID)
+    LAST_SESSION_ID = tonumber(info.SessionID)
 
-    dprint("SESSION LOCKED:",
-        LAST_REAL_SESSION
-    )
+    dprint("SESSION LOCKED:", LAST_SESSION_ID)
 end)
 
 -------------------------------------------------
@@ -309,6 +305,7 @@ local function startAlt()
             return
         end
 
+        -- Request trade if not opened
         if not tradeAnchor() then
             dprint("Request trade to MAIN")
             pcall(function()
@@ -316,6 +313,7 @@ local function startAlt()
             end)
         end
 
+        -- Wait for UI
         local anchor = waitForTradeAnchor(30)
         if not anchor then
             dprint("Trade UI timeout, retry")
@@ -323,10 +321,14 @@ local function startAlt()
             continue
         end
 
+        -- Wait for REAL session from server
         LAST_SESSION_ID = nil
         local t0 = tick()
+
         while tradeAnchor() and not LAST_SESSION_ID do
-            if tick() - t0 > 20 then break end
+            if tick() - t0 > 20 then
+                break
+            end
             task.wait(0.1)
         end
 
@@ -339,6 +341,7 @@ local function startAlt()
         local sessionId = LAST_SESSION_ID
         dprint("ALT using SessionID:", sessionId)
 
+        -- Build packs
         local packs = {}
         local idx = 1
 
@@ -374,15 +377,21 @@ local function startAlt()
             }
 
             idx += 1
-            task.wait(0.15)
+            task.wait(0.2)
         end
 
+        -- Accept trade
         if tradeAnchor() and #packs > 0 then
-            task.wait(0.3)
+            task.wait(0.5)
             acceptTrade(sessionId, LP.UserId, main.UserId, packs)
+            dprint("ALT -> ACCEPT SENT")
         end
 
-        repeat task.wait(0.5) until not tradeAnchor()
+        -- Wait trade close
+        repeat
+            task.wait(0.5)
+        until not tradeAnchor()
+
         dprint("Trade ended, retry loop")
         task.wait(2)
     end
