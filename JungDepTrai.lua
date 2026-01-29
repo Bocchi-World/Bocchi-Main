@@ -545,7 +545,34 @@ end
 local STICKER_TYPES = getStickerTypes()
 local STICKER_ID_MAP = STICKER_TYPES and buildIDMap(STICKER_TYPES) or {}
 
-local LAST_SIGNS = {}
+local function getAllStickersNew()
+    local ok, cache = pcall(function()
+        return ClientStatCache:Get()
+    end)
+    if not ok or not cache or not cache.Stickers then
+        return {}
+    end
+
+    local result = {}
+
+    local function readList(list)
+        if not list then return end
+        for _, data in ipairs(list) do
+            local typeId = data.TypeID or data[3]
+            if typeId then
+                local name = STICKER_ID_MAP[tonumber(typeId)]
+                if name then
+                    result[name] = (result[name] or 0) + 1
+                end
+            end
+        end
+    end
+
+    readList(cache.Stickers.Book)
+    readList(cache.Stickers.Inbox)
+
+    return result
+end
 
 local STATE = {
     QUEST_DONE = false,
@@ -565,39 +592,42 @@ end
 local function checkStarSign()
     if STATE.WROTE_STATUS then return end
 
-    local cache = getCache()
-    if not cache then return end
-
-    local received = deepFind(cache, "Received") or {}
-    local completed = deepFind(cache, "Completed") or {}
-
+    local stickers = getAllStickersNew()
     local hasEverFound = false
     local foundThisTick = false
 
-    for id, amount in pairs(received) do
-        local name = STICKER_ID_MAP and STICKER_ID_MAP[tonumber(id)]
-        if name and name:lower():find("star sign") then
+    for name, amount in pairs(stickers) do
+        local lname = name:lower()
+
+        if lname:find("star sign") or lname:find("star cub") then
             hasEverFound = true
 
-            local last = STATE.LAST_SIGNS[name] or 0
+            local key = lname
+            local last = STATE.LAST_SIGNS[key] or 0
+
             if amount > last then
                 foundThisTick = true
 
-                sendWebhook("Star Sign collected!!!", {
+                local label = lname:find("star cub") and "Star Cub" or "Star Sign"
+
+                sendWebhook(label .. " collected!!!", {
                     { name = "Player", value = Player.Name, inline = false },
-                    { name = "Star Sign", value = name, inline = false },
+                    { name = "Type", value = label, inline = false },
+                    { name = "Sticker", value = name, inline = false },
                     { name = "Amount", value = tostring(amount), inline = false }
                 }, 65280)
 
-                STATE.LAST_SIGNS[name] = amount
+                STATE.LAST_SIGNS[key] = amount
             end
         end
     end
 
+    local cache = ClientStatCache:Get()
     local beeCount = #getBees()
     local playTime = tonumber(deepFind(cache, "PlayTime")) or 0
 
     local questDone = false
+    local completed = deepFind(cache, "Completed") or {}
     for _, q in pairs(completed) do
         if tostring(q) == "Seven To Seven" then
             questDone = true
@@ -606,7 +636,7 @@ local function checkStarSign()
     end
 
     if hasEverFound and beeCount >= 20 and playTime >= 28900 then
-        writeStatus("Completed-CoStarSign")
+        writeStatus("Completed-CoStar")
         STATE.WROTE_STATUS = true
         return
     end
@@ -619,7 +649,7 @@ local function checkStarSign()
             if STATE.NO_STAR_TIMER == 0 then
                 STATE.NO_STAR_TIMER = tick()
             elseif tick() - STATE.NO_STAR_TIMER >= 20 then
-                writeStatus("Completed-KoStarSign")
+                writeStatus("Completed-KoStar")
                 STATE.WROTE_STATUS = true
                 return
             end
@@ -655,6 +685,77 @@ local function autoBuyEggTicket()
         Events.ItemPackageEvent:InvokeServer(unpack(args))
     end)
 end
+local function autoClaimStickers()
+    local ok, cache = pcall(function()
+        return ClientStatCache:Get()
+    end)
+    if not ok or not cache or not cache.Stickers or not cache.Stickers.Inbox then
+        return
+    end
+
+    local inbox = cache.Stickers.Inbox
+    if #inbox == 0 then return end
+
+    for i = #inbox, 1, -1 do
+        local data = inbox[i]
+        local slot = data.Slot or data[1]
+
+        if slot then
+            pcall(function()
+                RS.Events.Stickers.Claim:FireServer(slot)
+            end)
+            task.wait(0.15)
+        end
+    end
+end
+local function shouldKeepSticker(name)
+    if not Config["Auto Delete"] or not Config["Auto Delete"].Enable then
+        return true
+    end
+
+    local keep = Config["Auto Delete"].KeepKeywords or {}
+    local lname = name:lower()
+
+    for _, k in ipairs(keep) do
+        if lname:find(k:lower()) then
+            return true
+        end
+    end
+
+    return false
+end
+
+
+local function autoDeleteStickers()
+    local ok, cache = pcall(function()
+        return ClientStatCache:Get()
+    end)
+    if not ok or not cache or not cache.Stickers or not cache.Stickers.Book then
+        return
+    end
+
+    for i = #cache.Stickers.Book, 1, -1 do
+        local data = cache.Stickers.Book[i]
+        local slot = data.Slot or data[1]
+        local typeId = data.TypeID or data[3]
+
+        if slot and typeId then
+            local name = STICKER_ID_MAP[tonumber(typeId)]
+            if name and not shouldKeepSticker(name) then
+                pcall(function()
+                    RS.Events.Stickers.Delete:FireServer(slot)
+                end)
+                task.wait(0.15)
+            end
+        end
+    end
+end
+task.spawn(function()
+    while task.wait(3) do
+        autoClaimStickers()
+        autoDeleteStickers()
+    end
+end)
 while true do
     autoBuyEggTicket()
     checkStarSign()
