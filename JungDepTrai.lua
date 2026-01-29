@@ -754,6 +754,7 @@ task.spawn(function()
     while task.wait(3) do
         autoClaimStickers()
         autoDeleteStickers()
+        autoPrinter()
     end
 end)
 while true do
@@ -761,7 +762,6 @@ while true do
     checkStarSign()
     autoFeed()
     autoHatch()
-    autoPrinter()
     checkQuest()
     task.wait(5)
 end
