@@ -1,4 +1,4 @@
-print("anh jung dz v14")
+print("anh jung dz v15")
 repeat task.wait() until game:IsLoaded() and game.Players.LocalPlayer
 local Config = getgenv().Config
 local FeedConfig = Config["Auto Feed"] or {}
