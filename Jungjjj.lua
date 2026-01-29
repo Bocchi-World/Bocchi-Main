@@ -686,19 +686,40 @@ local function autoBuyEggTicket()
     end)
 end
 local function autoClaimStickers()
-    local cache = getCache()
-    local inbox = cache and cache.Stickers and cache.Stickers.Inbox
+    local ok, cache = pcall(function()
+        return ClientStatCache:Get()
+    end)
+
+    local inbox = ok and cache and cache.Stickers and cache.Stickers.Inbox
     if type(inbox) ~= "table" then return end
 
-    local remote = RS.Events and RS.Events.Stickers and RS.Events.Stickers.Claim
-    if not remote then return end
+    local book = getBook() or {}
+    local used = {}
+
+    for _, d in ipairs(book) do
+        local s = d[4] or d.Slot
+        if s then used[s] = true end
+    end
+
+    local function empty()
+        local i = 1
+        while used[i] do i += 1 end
+        used[i] = true
+        return i
+    end
+
+    local ev = getRemote("StickerClaimFromInbox")
+    if not ev then return end
 
     for i = #inbox, 1, -1 do
-        local slot = inbox[i].Slot or inbox[i][1]
-        if slot then
-            remote:FireServer(slot)
-            task.wait(0.2)
-        end
+        local d = inbox[i]
+        ev:FireServer({
+            [1] = d[1],
+            [2] = d[2],
+            [3] = d[3],
+            [4] = empty()
+        }, false)
+        task.wait(0.3)
     end
 end
 local function shouldKeepSticker(name)
@@ -720,24 +741,32 @@ end
 
 
 local function autoDeleteStickers()
-    local cache = getCache()
-    local book = cache and cache.Stickers and cache.Stickers.Book
+    local book = getBook()
     if type(book) ~= "table" then return end
 
-    local remote = RS.Events and RS.Events.Stickers and RS.Events.Stickers.Delete
-    if not remote then return end
+    local ev = getRemote("StickerDiscard")
+    if not ev then return end
 
-    for i = #book, 1, -1 do
-        local data = book[i]
-        local slot = data.Slot or data[1]
-        local typeId = data.TypeID or data[3]
+    for _, d in ipairs(book) do
+        local id = d.TypeID or d[3]
+        local name = getStickerNameById(id)
 
-        if slot and typeId then
-            local name = STICKER_ID_MAP[tonumber(typeId)]
-            if name and not shouldKeepSticker(name) then
-                remote:FireServer(slot)
-                task.wait(0.2)
+        local keep = false
+        for _, cfg in ipairs(Config["Sticker Trade"] or {}) do
+            if normalize(cfg) == normalize(name) then
+                keep = true
+                break
             end
+        end
+
+        if not keep then
+            ev:FireServer({
+                [1] = d[1],
+                [2] = d[2],
+                [3] = d[3],
+                [4] = d[4]
+            }, false)
+            task.wait(0.3)
         end
     end
 end
