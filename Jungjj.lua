@@ -687,27 +687,16 @@ local function autoBuyEggTicket()
 end
 local function autoClaimStickers()
     local cache = getCache()
-    if not cache or not cache.Stickers or not cache.Stickers.Inbox then
-        return
-    end
+    local inbox = cache and cache.Stickers and cache.Stickers.Inbox
+    if type(inbox) ~= "table" then return end
 
-    local inbox = cache.Stickers.Inbox
-    if type(inbox) ~= "table" or #inbox == 0 then return end
-
-    local claimRemote =
-        RS:WaitForChild("Events")
-          :WaitForChild("Stickers")
-          :WaitForChild("Claim")
+    local remote = RS.Events and RS.Events.Stickers and RS.Events.Stickers.Claim
+    if not remote then return end
 
     for i = #inbox, 1, -1 do
-        local data = inbox[i]
-        local slot = data.Slot or data[1]
-
+        local slot = inbox[i].Slot or inbox[i][1]
         if slot then
-            print("[Sticker] Claim slot:", slot)
-            pcall(function()
-                claimRemote:FireServer(slot)
-            end)
+            remote:FireServer(slot)
             task.wait(0.2)
         end
     end
@@ -732,27 +721,21 @@ end
 
 local function autoDeleteStickers()
     local cache = getCache()
-    if not cache or not cache.Stickers or not cache.Stickers.Book then
-        return
-    end
+    local book = cache and cache.Stickers and cache.Stickers.Book
+    if type(book) ~= "table" then return end
 
-    local deleteRemote =
-        RS:WaitForChild("Events")
-          :WaitForChild("Stickers")
-          :WaitForChild("Delete")
+    local remote = RS.Events and RS.Events.Stickers and RS.Events.Stickers.Delete
+    if not remote then return end
 
-    for i = #cache.Stickers.Book, 1, -1 do
-        local data = cache.Stickers.Book[i]
+    for i = #book, 1, -1 do
+        local data = book[i]
         local slot = data.Slot or data[1]
         local typeId = data.TypeID or data[3]
 
         if slot and typeId then
             local name = STICKER_ID_MAP[tonumber(typeId)]
             if name and not shouldKeepSticker(name) then
-                print("[Sticker] Delete:", name, "slot:", slot)
-                pcall(function()
-                    deleteRemote:FireServer(slot)
-                end)
+                remote:FireServer(slot)
                 task.wait(0.2)
             end
         end
