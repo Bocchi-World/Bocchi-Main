@@ -787,11 +787,13 @@ task.spawn(function()
         autoPrinter()
     end
 end)
-while true do
-    autoBuyEggTicket()
-    checkStarSign()
-    autoFeed()
-    autoHatch()
-    checkQuest()
-    task.wait(5)
-end
+
+task.spawn(function()
+    while task.wait(5) do
+        autoBuyEggTicket()
+        checkStarSign()
+        autoFeed()
+        autoHatch()
+        checkQuest()
+    end
+end)
