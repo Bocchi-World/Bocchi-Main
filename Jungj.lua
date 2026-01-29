@@ -686,25 +686,29 @@ local function autoBuyEggTicket()
     end)
 end
 local function autoClaimStickers()
-    local ok, cache = pcall(function()
-        return ClientStatCache:Get()
-    end)
-    if not ok or not cache or not cache.Stickers or not cache.Stickers.Inbox then
+    local cache = getCache()
+    if not cache or not cache.Stickers or not cache.Stickers.Inbox then
         return
     end
 
     local inbox = cache.Stickers.Inbox
-    if #inbox == 0 then return end
+    if type(inbox) ~= "table" or #inbox == 0 then return end
+
+    local claimRemote =
+        RS:WaitForChild("Events")
+          :WaitForChild("Stickers")
+          :WaitForChild("Claim")
 
     for i = #inbox, 1, -1 do
         local data = inbox[i]
         local slot = data.Slot or data[1]
 
         if slot then
+            print("[Sticker] Claim slot:", slot)
             pcall(function()
-                RS.Events.Stickers.Claim:FireServer(slot)
+                claimRemote:FireServer(slot)
             end)
-            task.wait(0.15)
+            task.wait(0.2)
         end
     end
 end
@@ -727,12 +731,15 @@ end
 
 
 local function autoDeleteStickers()
-    local ok, cache = pcall(function()
-        return ClientStatCache:Get()
-    end)
-    if not ok or not cache or not cache.Stickers or not cache.Stickers.Book then
+    local cache = getCache()
+    if not cache or not cache.Stickers or not cache.Stickers.Book then
         return
     end
+
+    local deleteRemote =
+        RS:WaitForChild("Events")
+          :WaitForChild("Stickers")
+          :WaitForChild("Delete")
 
     for i = #cache.Stickers.Book, 1, -1 do
         local data = cache.Stickers.Book[i]
@@ -742,10 +749,11 @@ local function autoDeleteStickers()
         if slot and typeId then
             local name = STICKER_ID_MAP[tonumber(typeId)]
             if name and not shouldKeepSticker(name) then
+                print("[Sticker] Delete:", name, "slot:", slot)
                 pcall(function()
-                    RS.Events.Stickers.Delete:FireServer(slot)
+                    deleteRemote:FireServer(slot)
                 end)
-                task.wait(0.15)
+                task.wait(0.2)
             end
         end
     end
