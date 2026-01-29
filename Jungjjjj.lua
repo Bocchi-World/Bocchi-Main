@@ -685,6 +685,16 @@ local function autoBuyEggTicket()
         Events.ItemPackageEvent:InvokeServer(unpack(args))
     end)
 end
+local function getBook()
+    local ok, cache = pcall(function()
+        return ClientStatCache:Get()
+    end)
+    if not ok or not cache then return nil end
+    return cache.Stickers and cache.Stickers.Book
+end
+local function getRemote(name)
+    return RS:FindFirstChild(name, true)
+end
 local function autoClaimStickers()
     local ok, cache = pcall(function()
         return ClientStatCache:Get()
