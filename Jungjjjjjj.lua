@@ -763,7 +763,11 @@ local function autoDeleteStickers()
 
     for _, d in ipairs(book) do
         local id = d.TypeID or d[3]
-        local name = getStickerNameById(id)
+        local name = ""
+
+        if getStickerNameById then
+            name = getStickerNameById(id) or ""
+        end
 
         if not shouldKeepSticker(name) then
             ev:FireServer({
