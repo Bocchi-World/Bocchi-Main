@@ -1,4 +1,4 @@
-print("anh jung dz v15")
+print("anh jung dz v16")
 repeat task.wait() until game:IsLoaded() and game.Players.LocalPlayer
 local Config = getgenv().Config
 local FeedConfig = Config["Auto Feed"] or {}
@@ -6,7 +6,7 @@ local RS = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local Http = game:GetService("HttpService")
 local Workspace = game:GetService("Workspace")
-
+local ClientStatCache = require(RS:WaitForChild("ClientStatCache"))
 local Player = Players.LocalPlayer
 local Events = RS:WaitForChild("Events")
 
