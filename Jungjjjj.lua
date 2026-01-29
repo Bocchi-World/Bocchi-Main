@@ -733,15 +733,19 @@ local function autoClaimStickers()
     end
 end
 local function shouldKeepSticker(name)
-    if not Config["Auto Delete"] or not Config["Auto Delete"].Enable then
+    local ad = Config["Auto Delete"]
+    if not ad or not ad.Enable then
         return true
     end
 
-    local keep = Config["Auto Delete"].KeepKeywords or {}
-    local lname = name:lower()
+    local keep = ad.KeepKeywords
+    if type(keep) ~= "table" then
+        return false
+    end
 
+    local lname = name:lower()
     for _, k in ipairs(keep) do
-        if lname:find(k:lower()) then
+        if lname:find(tostring(k):lower()) then
             return true
         end
     end
@@ -761,15 +765,7 @@ local function autoDeleteStickers()
         local id = d.TypeID or d[3]
         local name = getStickerNameById(id)
 
-        local keep = false
-        for _, cfg in ipairs(Config["Sticker Trade"] or {}) do
-            if normalize(cfg) == normalize(name) then
-                keep = true
-                break
-            end
-        end
-
-        if not keep then
+        if not shouldKeepSticker(name) then
             ev:FireServer({
                 [1] = d[1],
                 [2] = d[2],
