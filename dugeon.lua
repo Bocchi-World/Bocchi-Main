@@ -1,14 +1,16 @@
+repeat task.wait() until game:IsLoaded()
+
 local a = game:GetService("Players")
-local c = a.LocalPlayer
 local b = "https://discord.gg/pGmepY6TC"
+local c = a.LocalPlayer
+
+assert(c, "LocalPlayer is nil")
 
 if setclipboard then
     pcall(setclipboard, b)
 end
 
-if not c then
-    error("LocalPlayer is nil - script is not running on the client")
-end
+task.wait(0.5)
 
 c:Kick(
     "Please join our Discord server to get the latest script!\n\n" ..
