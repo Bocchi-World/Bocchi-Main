@@ -7,7 +7,7 @@ if setclipboard then
     setclipboard(b)
 end
 
-player:Kick(
+c:Kick(
     "Please join our Discord server to get the latest script!\n\n" ..
     "Discord invite copied to your clipboard.\n" ..
     b
