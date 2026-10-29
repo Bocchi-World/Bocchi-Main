@@ -13,7 +13,7 @@ end
 task.wait(0.5)
 
 c:Kick(
-    "Please join our Discord server to get the latest script!\n\n" ..
+    "Please join our Bocchi reworked. to get the latest script!\n\n" ..
     "Discord invite copied to your clipboard.\n" ..
     b
 )
