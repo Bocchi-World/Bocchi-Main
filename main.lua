@@ -12619,7 +12619,7 @@ local MacUI = (function()
 		local function circlePlace(index, n, info)
 			local data = level()
 			local skyPosition = skyPositionEnabled(data)
-			local hill = info.data.hill_unit or (data.map == "skypiea" and info.data.hybrid_placement)
+			local hill = info.data.hill_unit or (skyPosition and info.data.hybrid_placement)
 			local stored = cfg.AutoPlacePositions[data.map]
 			local text = type(stored) == "table" and (stored["Unit" .. index] or stored.Center)
 			if not skyPosition and placement(info, "Position Mode") == "Shared Position" then
@@ -12671,7 +12671,7 @@ local MacUI = (function()
 			end
 			if
 				not hill
-				and not info.data.hybrid_placement
+				and (not info.data.hybrid_placement or (data.map == "skypiea" and not skyPosition))
 				and placement(info, "Position Mode") ~= "Path"
 			then
 				return
