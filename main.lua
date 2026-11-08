@@ -20641,11 +20641,14 @@ local MacUI = (function()
 							return rows
 						end
 						local scroll = at(panel, "Inset.ItemsRows.Scroll")
-						local accept, count = false, 0
-						local function prefix(ids, id)
+						local accept, denied, unknown, count = false, false, false, 0
+						local function prefix(ids, id, includeSuper)
 							for _, value in ipairs(ids) do
-								if id:sub(1, #value) == value then
-									return true
+								if id:sub(1, #value) == value then return true end
+								-- A denied base curse also blocks its Super variant.
+								if includeSuper and value:sub(1, 13) ~= "_curse_super_" then
+									local base = id:gsub("^_curse_super_", "_curse_")
+									if base:sub(1, #value) == value then return true end
 								end
 							end
 							return false
@@ -20656,19 +20659,17 @@ local MacUI = (function()
 							end
 							count += 1
 							local id = itemId(frame)
-							if
-								id
-								and id:match("^_curse")
-								and prefix(cfg["Dungeon Accept"], id)
-								and not prefix(cfg["Dungeon Deny"], id)
-							then
-								accept = true
+							if not id then
+								unknown = true
+							elseif id:match("^_curse") then
+								if prefix(cfg["Dungeon Deny"], id, true) then denied = true end
+								if prefix(cfg["Dungeon Accept"], id, false) then accept = true end
 							end
 						end
 						if count == 0 then
 							return rows
 						end
-						dungeonCall(panel, accept and "dungeon_shrine_accept" or "dungeon_continue_shop")
+						dungeonCall(panel, accept and not denied and not unknown and "dungeon_shrine_accept" or "dungeon_continue_shop")
 					elseif name == "OpenTreasure" then
 						if state.chestsDone then
 							if os.clock() >= state.continueAt then
