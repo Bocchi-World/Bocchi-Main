@@ -16865,11 +16865,11 @@ local MacUI = (function()
 				if ready then pcall(function() writefile(chall.cachePath, HttpService:JSONEncode(chall.cache)) end) end
 			end
 			function chall.inChallenge()
-				if chall.run then return true end
 				local ok, data = pcall(level)
 				if not ok or type(data) ~= "table" then return nil end
-				if type(data._dungeon) == "table" or data._dungeon == true or data.floor_num
+				if type(data._dungeon) == "table" or data._dungeon == true or data._gamemode == "dungeon" or data.floor_num
 					or data._portal_depth or data.portal_group or data._is_map_or_portal_level or data.id == "summer2_event" then return false end
+				if chall.run then return true end
 				local gameMode = tostring(data._gamemode or ""):lower()
 				local id = tostring(data.id or ""):lower()
 				local marker = data._challenge or data._is_challenge or data.is_challenge or data.challenge_uuid or data._challenge_uuid
@@ -17177,6 +17177,7 @@ local MacUI = (function()
 				if chall.cache.cycle ~= cycle then
 					chall.cache.previous_uuid = chall.cache.uuid
 					chall.save("check lobby", cycle, nil)
+					chall.checkAt = nil -- The new cycle must not inherit the previous retry delay.
 				end
 				-- Never interrupt a challenge in progress; stale fight state from an
 				-- earlier cycle must not block the next scheduled check.
@@ -17184,9 +17185,14 @@ local MacUI = (function()
 				if inChallenge ~= false then return end
 				if chall.cache.state == "fight" then chall.save("check lobby", cycle, nil) end
 				if chall.cache.state ~= "check lobby" then return end
-				if os.clock() - chall.checkAt < 10 then return end
+				if os.clock() - (chall.checkAt or -math.huge) < 10 then return end
 				chall.checkAt = os.clock()
-				goLobby()
+				if not goLobby() then
+					local ok, data = pcall(level)
+					if ok and type(data) == "table" and (type(data._dungeon) == "table" or data._dungeon == true or data._gamemode == "dungeon") then
+						pcall(function() getRemote("dungeon_quit"):InvokeServer() end)
+					end
+				end
 			end
 
 			-- ==== BANNER WEBHOOK + CHALLENGE (end) ====
